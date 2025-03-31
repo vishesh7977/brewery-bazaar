@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -50,10 +49,12 @@ export default function Reviews({ productId, rating, reviewCount }: ReviewsProps
   ]);
   
   const [helpfulMarked, setHelpfulMarked] = useState<Record<string, boolean>>({});
+  const [activeTab, setActiveTab] = useState("reviews");
   
   const handleNewReview = () => {
     // In a real app, we would refresh the reviews from the server
     console.log("New review submitted");
+    setActiveTab("reviews");
   };
   
   const markHelpful = (reviewId: string) => {
@@ -83,7 +84,7 @@ export default function Reviews({ productId, rating, reviewCount }: ReviewsProps
     <div className="mt-16 border-t pt-8">
       <h2 className="text-2xl font-bold mb-6">Customer Reviews</h2>
       
-      <Tabs defaultValue="reviews">
+      <Tabs defaultValue="reviews" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-8">
           <TabsTrigger value="reviews">Reviews ({reviews.length})</TabsTrigger>
           <TabsTrigger value="write-review">Write a Review</TabsTrigger>
@@ -180,7 +181,7 @@ export default function Reviews({ productId, rating, reviewCount }: ReviewsProps
                     This product doesn't have any reviews yet.
                   </p>
                   <Button
-                    onClick={() => document.querySelector('[data-value="write-review"]')?.click()}
+                    onClick={() => setActiveTab("write-review")}
                   >
                     Be the first to review
                   </Button>
