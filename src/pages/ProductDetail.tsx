@@ -5,12 +5,15 @@ import { products } from "@/lib/data";
 import { Product, ProductVariant } from "@/types";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { HeartIcon, ShoppingCart, Star, ArrowLeft } from "lucide-react";
+import { HeartIcon, ShoppingCart, Star, ArrowLeft, Share2, Truck, Clock, Shield } from "lucide-react";
+import { motion } from "framer-motion";
+import { useCart } from "@/contexts/CartContext";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { addItem } = useCart();
   
   // Find the product by ID
   const product = products.find((p) => p.id === id);
@@ -47,6 +50,7 @@ export default function ProductDetail() {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   
   // Find selected variant based on size and color
   const selectedVariant = product.variants.find(
@@ -83,13 +87,10 @@ export default function ProductDetail() {
       return;
     }
     
-    // Mock adding to cart (in a real app, this would add to cart state/storage)
-    toast({
-      title: "Added to cart",
-      description: `${quantity} × ${product.name} (${selectedSize}, ${selectedColor}) added to cart`,
-    });
+    // Add to cart using context
+    addItem(product, selectedVariant, quantity);
     
-    // Navigate to cart (simulating real behavior)
+    // Navigate to cart
     navigate("/cart");
   };
   
@@ -143,13 +144,18 @@ export default function ProductDetail() {
       setQuantity(quantity + 1);
     }
   };
+
+  // Format price for display
+  const formatPrice = (price: number) => {
+    return `₹${(price / 10000).toFixed(2)}`;
+  };
   
   return (
     <div className="container mx-auto px-4 py-8">
       <Button
         variant="ghost"
         onClick={() => navigate(-1)}
-        className="mb-6 -ml-3"
+        className="mb-6 -ml-3 hover:bg-secondary"
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back
@@ -158,33 +164,45 @@ export default function ProductDetail() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-16">
         {/* Product Images */}
         <div className="space-y-4">
-          <div className="aspect-square bg-secondary rounded-md overflow-hidden">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="aspect-square bg-secondary rounded-md overflow-hidden"
+          >
             <img
-              src={product.images[0]}
+              src={product.images[activeImageIndex]}
               alt={product.name}
               className="object-cover w-full h-full"
             />
-          </div>
-          <div className="hidden sm:grid grid-cols-4 gap-2">
+          </motion.div>
+          <div className="grid grid-cols-4 gap-2">
             {product.images.map((image, index) => (
-              <div
+              <motion.div
                 key={index}
+                whileHover={{ scale: 1.05 }}
                 className={`aspect-square rounded-md overflow-hidden bg-secondary cursor-pointer border-2 ${
-                  index === 0 ? "border-primary" : "border-transparent"
+                  index === activeImageIndex ? "border-primary" : "border-transparent"
                 }`}
+                onClick={() => setActiveImageIndex(index)}
               >
                 <img
                   src={image}
                   alt={`${product.name} ${index + 1}`}
                   className="object-cover w-full h-full"
                 />
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
         
         {/* Product Details */}
-        <div className="space-y-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="space-y-6"
+        >
           {/* Basic Info */}
           <div className="space-y-2">
             <div className="text-sm text-muted-foreground uppercase tracking-wider">
@@ -209,14 +227,18 @@ export default function ProductDetail() {
                   {product.rating} ({product.reviews} reviews)
                 </span>
               </div>
+              <Button variant="ghost" size="sm" className="p-0 h-auto">
+                <Share2 className="h-4 w-4 mr-1" />
+                <span className="text-sm">Share</span>
+              </Button>
             </div>
             <div className="flex items-center gap-2 pt-2">
               <span className="text-2xl font-bold">
-                ₹{(product.price / 100).toFixed(2)}
+                {formatPrice(product.price)}
               </span>
               {product.originalPrice && (
                 <span className="text-muted-foreground line-through">
-                  ₹{(product.originalPrice / 100).toFixed(2)}
+                  {formatPrice(product.originalPrice)}
                 </span>
               )}
               {product.originalPrice && (
@@ -274,7 +296,9 @@ export default function ProductDetail() {
             <div className="flex flex-wrap gap-3">
               {availableColors.map((color) => (
                 <div key={color.name} className="flex flex-col items-center gap-1">
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => {
                       if (isColorAvailable(color.name)) {
                         setSelectedColor(color.name);
@@ -295,7 +319,7 @@ export default function ProductDetail() {
                       !isColorAvailable(color.name)
                         ? "opacity-50 cursor-not-allowed ring-1 ring-border"
                         : selectedColor === color.name
-                        ? "ring-2 ring-primary ring-offset-2"
+                        ? "ring-2 ring-primary ring-offset-2 scale-110"
                         : "ring-1 ring-border hover:ring-2 hover:ring-primary/50"
                     }`}
                     style={{ backgroundColor: color.code }}
@@ -349,10 +373,26 @@ export default function ProductDetail() {
             </div>
           </div>
           
+          {/* Shipping and Returns Info */}
+          <div className="border-t border-b py-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Truck className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm">Free shipping on orders over ₹999</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm">30-day easy returns</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm">1-year warranty on all products</span>
+            </div>
+          </div>
+          
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <Button
-              className="flex-1"
+              className="flex-1 bg-primary hover:bg-primary/90"
               size="lg"
               onClick={handleAddToCart}
               disabled={!selectedSize || !selectedColor}
@@ -378,7 +418,7 @@ export default function ProductDetail() {
               {product.description}
             </p>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

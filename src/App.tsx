@@ -5,6 +5,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { CartProvider } from "./contexts/CartContext";
+import { PageLoader } from "./components/ui/page-loader";
+
 import Index from "./pages/Index";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
@@ -58,41 +61,63 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const AppContent = () => {
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    // Simulate initial loading
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
+  return (
+    <>
+      <PageLoader loading={loading} />
+      <div className={`flex flex-col min-h-screen ${loading ? 'overflow-hidden' : ''}`}>
+        <Navbar />
+        <main className="flex-1">
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/admin" element={
+              <AdminRoute>
+                <Admin />
+              </AdminRoute>
+            } />
+            <Route path="/about-us" element={<AboutUs />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <ScrollToTop />
-        <div className="flex flex-col min-h-screen">
-          <Navbar />
-          <main className="flex-1">
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/products" element={<Products />} />
-              <Route path="/product/:id" element={<ProductDetail />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/admin" element={
-                <AdminRoute>
-                  <Admin />
-                </AdminRoute>
-              } />
-              <Route path="/about-us" element={<AboutUs />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              } />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
-      </BrowserRouter>
+      <CartProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <ScrollToTop />
+          <AppContent />
+        </BrowserRouter>
+      </CartProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
