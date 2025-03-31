@@ -52,3 +52,44 @@ export interface FilterState {
   size: string | null;
   color: string | null;
 }
+
+// Address Types
+export interface Address {
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+}
+
+// Customer Types
+export interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+}
+
+// Order Types
+export type OrderStatus = 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
+
+export interface OrderItem {
+  product: Product;
+  variant: ProductVariant;
+  quantity: number;
+  price: number;
+}
+
+export interface Order {
+  id: string;
+  customer: Customer;
+  items: OrderItem[];
+  shippingAddress: Address;
+  billingAddress: Address;
+  subtotal: number;
+  shipping: number;
+  total: number;
+  status: OrderStatus;
+  date: string;
+  paymentMethod: string;
+}

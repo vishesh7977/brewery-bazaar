@@ -1,69 +1,265 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { products, categories } from "@/lib/data";
-import { Edit, Trash2, Plus, Search, Filter, Package, Users, ShoppingCart } from "lucide-react";
+import { products as initialProducts, categories } from "@/lib/data";
+import { Edit, Trash2, Plus, Search, Filter, Package, Users, ShoppingCart, Save, Eye, X } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { Product, ProductVariant, Order, OrderStatus } from "@/types";
+import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 
 export default function Admin() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("products");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
+  
+  // Get products from localStorage or use initial data
+  const [products, setProducts] = useLocalStorage<Product[]>("products", initialProducts);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showProductForm, setShowProductForm] = useState(false);
+  
+  // Get orders from localStorage or use empty array
+  const [orders, setOrders] = useLocalStorage<Order[]>("orders", []);
+  const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
+  
+  // Get customers from localStorage
+  const [customers, setCustomers] = useLocalStorage<any[]>("customers", []);
+  
+  // Form state for product editing/creation
+  const [formProduct, setFormProduct] = useState<Partial<Product>>({
+    name: "",
+    description: "",
+    price: 2000,
+    category: "t-shirts",
+    images: ["https://img.freepik.com/free-photo/black-t-shirt-with-word-ultra-it_1340-37775.jpg"],
+    variants: [
+      {
+        id: "var1",
+        size: "M",
+        color: "Black",
+        colorCode: "#000000",
+        stock: 10
+      }
+    ],
+    rating: 4.5,
+    reviews: 0,
+    inStock: true
+  });
   
   // Show login message with demo credentials
-  useState(() => {
+  useEffect(() => {
     toast({
       title: "Admin Dashboard",
       description: "Use admin@test.com / admin to log in",
     });
+  }, []);
+  
+  // Filter products based on search and category
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = searchTerm === "" || 
+      product.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === null || product.category === filterCategory;
+    return matchesSearch && matchesCategory;
   });
+  
+  const handleAddProduct = () => {
+    setEditingProduct(null);
+    setFormProduct({
+      name: "",
+      description: "",
+      price: 2000,
+      category: "t-shirts",
+      images: ["https://img.freepik.com/free-photo/black-t-shirt-with-word-ultra-it_1340-37775.jpg"],
+      variants: [
+        {
+          id: "var1",
+          size: "M",
+          color: "Black",
+          colorCode: "#000000",
+          stock: 10
+        }
+      ],
+      rating: 4.5,
+      reviews: 0,
+      inStock: true
+    });
+    setShowProductForm(true);
+  };
+  
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setFormProduct(product);
+    setShowProductForm(true);
+  };
+  
+  const handleDeleteProduct = (productId: string) => {
+    setProducts(products.filter(p => p.id !== productId));
+    toast({
+      title: "Product deleted",
+      description: "The product has been successfully removed.",
+    });
+  };
+  
+  const handleSaveProduct = () => {
+    if (!formProduct.name || !formProduct.price || !formProduct.category) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (editingProduct) {
+      // Update existing product
+      setProducts(products.map(p => 
+        p.id === editingProduct.id ? { ...formProduct as Product, id: editingProduct.id } : p
+      ));
+      
+      toast({
+        title: "Product updated",
+        description: `${formProduct.name} has been updated successfully.`,
+      });
+    } else {
+      // Add new product
+      const newId = `product-${Date.now()}`;
+      const newProduct = {
+        ...formProduct as Product,
+        id: newId,
+      };
+      
+      setProducts([...products, newProduct]);
+      
+      toast({
+        title: "Product added",
+        description: `${formProduct.name} has been added successfully.`,
+      });
+    }
+    
+    setShowProductForm(false);
+  };
+  
+  const handleAddVariant = () => {
+    const variants = formProduct.variants || [];
+    const newVariant: ProductVariant = {
+      id: `var-${Date.now()}`,
+      size: "M",
+      color: "Black",
+      colorCode: "#000000",
+      stock: 10
+    };
+    
+    setFormProduct({
+      ...formProduct,
+      variants: [...variants, newVariant]
+    });
+  };
+  
+  const handleRemoveVariant = (variantId: string) => {
+    const updatedVariants = formProduct.variants?.filter(v => v.id !== variantId) || [];
+    setFormProduct({
+      ...formProduct,
+      variants: updatedVariants
+    });
+  };
+  
+  const handleVariantChange = (variantId: string, field: keyof ProductVariant, value: any) => {
+    const updatedVariants = formProduct.variants?.map(v => {
+      if (v.id === variantId) {
+        return { ...v, [field]: value };
+      }
+      return v;
+    }) || [];
+    
+    setFormProduct({
+      ...formProduct,
+      variants: updatedVariants
+    });
+  };
+  
+  const handleUpdateOrderStatus = (orderId: string, status: OrderStatus) => {
+    const updatedOrders = orders.map(order => 
+      order.id === orderId ? { ...order, status } : order
+    );
+    
+    setOrders(updatedOrders);
+    
+    toast({
+      title: "Order updated",
+      description: `Order #${orderId} status changed to ${status}`,
+    });
+  };
+  
+  // Generate color options
+  const colorOptions = [
+    { name: "Black", code: "#000000" },
+    { name: "White", code: "#FFFFFF" },
+    { name: "Gray", code: "#808080" },
+    { name: "Navy", code: "#000080" },
+    { name: "Red", code: "#FF0000" },
+    { name: "Green", code: "#008000" },
+    { name: "Blue", code: "#0000FF" },
+    { name: "Yellow", code: "#FFFF00" }
+  ];
   
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
+      <motion.h1 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="text-3xl font-bold mb-8"
+      >
+        Admin Dashboard
+      </motion.h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
+      >
+        <Card className="overflow-hidden bg-gradient-to-br from-primary/5 to-primary/10">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Sales
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹24,567.89</div>
+            <div className="text-2xl font-bold">₹{orders.reduce((sum, order) => sum + order.total, 0).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              +12% from last month
+              {orders.length} orders processed
             </p>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="overflow-hidden bg-gradient-to-br from-orange-500/5 to-orange-500/10">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Orders
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">125</div>
+            <div className="text-2xl font-bold">{orders.length}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              +5% from last month
+              {orders.filter(o => o.status === "Processing").length} pending
             </p>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="overflow-hidden bg-gradient-to-br from-blue-500/5 to-blue-500/10">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Products
@@ -77,23 +273,23 @@ export default function Admin() {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="overflow-hidden bg-gradient-to-br from-green-500/5 to-green-500/10">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Customers
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,204</div>
+            <div className="text-2xl font-bold">{customers.length}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              +18% from last month
+              {customers.filter(c => c.orders > 0).length} active
             </p>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-8">
+        <TabsList className="mb-8 bg-background/50 backdrop-blur-sm">
           <TabsTrigger value="products" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
             Products
@@ -109,7 +305,7 @@ export default function Admin() {
         </TabsList>
         
         <TabsContent value="products">
-          <Card>
+          <Card className="bg-card/50 backdrop-blur-sm border border-border/50">
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
@@ -125,9 +321,24 @@ export default function Admin() {
                       type="search"
                       placeholder="Search products..."
                       className="pl-8 w-full md:w-[200px] lg:w-[300px]"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
-                  <Button>
+                  <Select value={filterCategory || ""} onValueChange={(value) => setFilterCategory(value || null)}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Categories</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category.slug} value={category.slug}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={handleAddProduct}>
                     <Plus className="mr-2 h-4 w-4" />
                     Add Product
                   </Button>
@@ -136,101 +347,125 @@ export default function Admin() {
             </CardHeader>
             <CardContent>
               <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Stock</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {products.map((product) => {
-                      // Calculate total stock
-                      const totalStock = product.variants.reduce(
-                        (sum, variant) => sum + variant.stock,
-                        0
-                      );
-                      
-                      return (
-                        <TableRow key={product.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 rounded-md bg-secondary overflow-hidden">
-                                <img
-                                  src={product.images[0]}
-                                  alt={product.name}
-                                  className="h-full w-full object-cover"
-                                />
-                              </div>
-                              <div>
-                                <div className="font-medium">
-                                  {product.name}
+                <div className="overflow-auto max-h-[500px]">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        <th className="text-left p-3">Product</th>
+                        <th className="text-left p-3">Category</th>
+                        <th className="text-left p-3">Price</th>
+                        <th className="text-left p-3">Stock</th>
+                        <th className="text-right p-3">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredProducts.map((product) => {
+                        // Calculate total stock
+                        const totalStock = product.variants.reduce(
+                          (sum, variant) => sum + variant.stock,
+                          0
+                        );
+                        
+                        return (
+                          <tr key={product.id} className="border-t hover:bg-muted/30 transition-colors">
+                            <td className="p-3">
+                              <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-md bg-secondary overflow-hidden">
+                                  <img
+                                    src={product.images[0]}
+                                    alt={product.name}
+                                    className="h-full w-full object-cover"
+                                  />
                                 </div>
+                                <div>
+                                  <div className="font-medium">
+                                    {product.name}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {product.id}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-3 capitalize">
+                              {product.category.replace('-', ' ')}
+                            </td>
+                            <td className="p-3">
+                              ₹{(product.price / 100).toFixed(2)}
+                              {product.originalPrice && (
                                 <div className="text-xs text-muted-foreground">
-                                  {product.id}
+                                  Was: ₹{(product.originalPrice / 100).toFixed(2)}
                                 </div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="capitalize">
-                            {product.category.replace('-', ' ')}
-                          </TableCell>
-                          <TableCell>
-                            ₹{(product.price / 100).toFixed(2)}
-                            {product.originalPrice && (
-                              <div className="text-xs text-muted-foreground">
-                                Was: ₹{(product.originalPrice / 100).toFixed(2)}
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div
-                              className={`text-sm ${
-                                totalStock < 10
-                                  ? "text-destructive"
-                                  : totalStock < 20
-                                  ? "text-yellow-600 dark:text-yellow-500"
-                                  : "text-green-600 dark:text-green-500"
-                              }`}
-                            >
-                              {totalStock} units
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0"
+                              )}
+                            </td>
+                            <td className="p-3">
+                              <div
+                                className={`text-sm ${
+                                  totalStock < 10
+                                    ? "text-destructive"
+                                    : totalStock < 20
+                                    ? "text-yellow-600 dark:text-yellow-500"
+                                    : "text-green-600 dark:text-green-500"
+                                }`}
                               >
-                                <Edit className="h-4 w-4" />
-                                <span className="sr-only">Edit</span>
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Delete</span>
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                                {totalStock} units
+                              </div>
+                            </td>
+                            <td className="p-3 text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0"
+                                  asChild
+                                >
+                                  <Link to={`/product/${product.id}`} target="_blank">
+                                    <Eye className="h-4 w-4" />
+                                    <span className="sr-only">View</span>
+                                  </Link>
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => handleEditProduct(product)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                  <span className="sr-only">Edit</span>
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => handleDeleteProduct(product.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  <span className="sr-only">Delete</span>
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      
+                      {filteredProducts.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="text-center py-10">
+                            <Package className="h-10 w-10 mx-auto text-muted-foreground opacity-30 mb-2" />
+                            <p className="text-muted-foreground">No products found</p>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
         
         <TabsContent value="orders">
-          <Card>
+          <Card className="bg-card/50 backdrop-blur-sm border border-border/50">
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
@@ -248,90 +483,77 @@ export default function Admin() {
                       className="pl-8 w-full md:w-[200px] lg:w-[300px]"
                     />
                   </div>
-                  <Button variant="outline">
-                    <Filter className="mr-2 h-4 w-4" />
-                    Filter
-                  </Button>
+                  <Select>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="All Statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="processing">Processing</SelectItem>
+                      <SelectItem value="shipped">Shipped</SelectItem>
+                      <SelectItem value="delivered">Delivered</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Order ID</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>
-                        <div className="font-medium">#ORD-001</div>
-                      </TableCell>
-                      <TableCell>John Doe</TableCell>
-                      <TableCell>Jun 21, 2023</TableCell>
-                      <TableCell>
-                        <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 border-green-200 dark:bg-green-800/30 dark:text-green-400 dark:border-green-800">
-                          Delivered
-                        </div>
-                      </TableCell>
-                      <TableCell>₹1,999.00</TableCell>
-                      <TableCell className="text-right">
-                        <Button size="sm" variant="ghost">
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>
-                        <div className="font-medium">#ORD-002</div>
-                      </TableCell>
-                      <TableCell>Jane Smith</TableCell>
-                      <TableCell>Jun 20, 2023</TableCell>
-                      <TableCell>
-                        <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-800/30 dark:text-yellow-400 dark:border-yellow-800">
-                          Shipped
-                        </div>
-                      </TableCell>
-                      <TableCell>₹3,499.00</TableCell>
-                      <TableCell className="text-right">
-                        <Button size="sm" variant="ghost">
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>
-                        <div className="font-medium">#ORD-003</div>
-                      </TableCell>
-                      <TableCell>Robert Johnson</TableCell>
-                      <TableCell>Jun 19, 2023</TableCell>
-                      <TableCell>
-                        <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-800/30 dark:text-blue-400 dark:border-blue-800">
-                          Processing
-                        </div>
-                      </TableCell>
-                      <TableCell>₹5,999.00</TableCell>
-                      <TableCell className="text-right">
-                        <Button size="sm" variant="ghost">
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                <div className="overflow-auto max-h-[500px]">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        <th className="text-left p-3">Order ID</th>
+                        <th className="text-left p-3">Customer</th>
+                        <th className="text-left p-3">Date</th>
+                        <th className="text-left p-3">Status</th>
+                        <th className="text-left p-3">Total</th>
+                        <th className="text-right p-3">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orders.length > 0 ? (
+                        orders.map((order) => (
+                          <tr key={order.id} className="border-t hover:bg-muted/30 transition-colors">
+                            <td className="p-3">
+                              <div className="font-medium">#{order.id}</div>
+                            </td>
+                            <td className="p-3">{order.customer.name}</td>
+                            <td className="p-3">{new Date(order.date).toLocaleDateString()}</td>
+                            <td className="p-3">
+                              <StatusBadge status={order.status} />
+                            </td>
+                            <td className="p-3">₹{(order.total / 100).toFixed(2)}</td>
+                            <td className="p-3 text-right">
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={() => setViewingOrder(order)}
+                              >
+                                View
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={6} className="text-center py-10">
+                            <ShoppingCart className="h-10 w-10 mx-auto text-muted-foreground opacity-30 mb-2" />
+                            <p className="text-muted-foreground">No orders found</p>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
         
         <TabsContent value="customers">
-          <Card>
+          <Card className="bg-card/50 backdrop-blur-sm border border-border/50">
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
@@ -354,67 +576,454 @@ export default function Admin() {
             </CardHeader>
             <CardContent>
               <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Joined</TableHead>
-                      <TableHead>Orders</TableHead>
-                      <TableHead>Spent</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>
-                        <div className="font-medium">John Doe</div>
-                      </TableCell>
-                      <TableCell>john.doe@example.com</TableCell>
-                      <TableCell>Jan 15, 2023</TableCell>
-                      <TableCell>5</TableCell>
-                      <TableCell>₹12,349.50</TableCell>
-                      <TableCell className="text-right">
-                        <Button size="sm" variant="ghost">
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>
-                        <div className="font-medium">Jane Smith</div>
-                      </TableCell>
-                      <TableCell>jane.smith@example.com</TableCell>
-                      <TableCell>Feb 28, 2023</TableCell>
-                      <TableCell>3</TableCell>
-                      <TableCell>₹8,799.00</TableCell>
-                      <TableCell className="text-right">
-                        <Button size="sm" variant="ghost">
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>
-                        <div className="font-medium">Robert Johnson</div>
-                      </TableCell>
-                      <TableCell>robert.j@example.com</TableCell>
-                      <TableCell>Mar 12, 2023</TableCell>
-                      <TableCell>2</TableCell>
-                      <TableCell>₹5,999.00</TableCell>
-                      <TableCell className="text-right">
-                        <Button size="sm" variant="ghost">
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                <div className="overflow-auto max-h-[500px]">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        <th className="text-left p-3">Name</th>
+                        <th className="text-left p-3">Email</th>
+                        <th className="text-left p-3">Joined</th>
+                        <th className="text-left p-3">Orders</th>
+                        <th className="text-left p-3">Spent</th>
+                        <th className="text-right p-3">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {customers.length > 0 ? (
+                        customers.map((customer) => (
+                          <tr key={customer.id} className="border-t hover:bg-muted/30 transition-colors">
+                            <td className="p-3">
+                              <div className="font-medium">{customer.name}</div>
+                            </td>
+                            <td className="p-3">{customer.email}</td>
+                            <td className="p-3">{new Date(customer.joinedDate).toLocaleDateString()}</td>
+                            <td className="p-3">{customer.orders}</td>
+                            <td className="p-3">₹{(customer.spent / 100).toFixed(2)}</td>
+                            <td className="p-3 text-right">
+                              <Button size="sm" variant="ghost">
+                                View
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={6} className="text-center py-10">
+                            <Users className="h-10 w-10 mx-auto text-muted-foreground opacity-30 mb-2" />
+                            <p className="text-muted-foreground">No customers found</p>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* Product form dialog */}
+      <Dialog open={showProductForm} onOpenChange={setShowProductForm}>
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
+            <DialogDescription>
+              {editingProduct 
+                ? "Make changes to the product here. Click save when you're done." 
+                : "Add details for the new product here."}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-6 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Product Name</Label>
+                <Input
+                  id="name"
+                  value={formProduct.name || ""}
+                  onChange={(e) => setFormProduct({ ...formProduct, name: e.target.value })}
+                  placeholder="Product name"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Select 
+                  value={formProduct.category || ""} 
+                  onValueChange={(value) => setFormProduct({ ...formProduct, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.slug} value={category.slug}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formProduct.description || ""}
+                onChange={(e) => setFormProduct({ ...formProduct, description: e.target.value })}
+                placeholder="Product description"
+                rows={4}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="price">Price (in paise)</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  min="0"
+                  step="100"
+                  value={formProduct.price || 0}
+                  onChange={(e) => setFormProduct({ ...formProduct, price: parseInt(e.target.value) })}
+                  placeholder="Price"
+                />
+                <p className="text-sm text-muted-foreground">
+                  ₹{((formProduct.price || 0) / 100).toFixed(2)}
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="original-price">Original Price (Optional)</Label>
+                <Input
+                  id="original-price"
+                  type="number"
+                  min="0"
+                  step="100"
+                  value={formProduct.originalPrice || ""}
+                  onChange={(e) => {
+                    const value = e.target.value ? parseInt(e.target.value) : undefined;
+                    setFormProduct({ ...formProduct, originalPrice: value });
+                  }}
+                  placeholder="Original price"
+                />
+                {formProduct.originalPrice && (
+                  <p className="text-sm text-muted-foreground">
+                    ₹{(formProduct.originalPrice / 100).toFixed(2)}
+                  </p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <div className="flex items-center space-x-2 pt-2">
+                  <Switch 
+                    id="status" 
+                    checked={formProduct.inStock} 
+                    onCheckedChange={(checked) => setFormProduct({ ...formProduct, inStock: checked })}
+                  />
+                  <Label htmlFor="status">{formProduct.inStock ? "In Stock" : "Out of Stock"}</Label>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="images">Images (URLs)</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {(formProduct.images || []).map((image, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      value={image}
+                      onChange={(e) => {
+                        const updatedImages = [...(formProduct.images || [])];
+                        updatedImages[index] = e.target.value;
+                        setFormProduct({ ...formProduct, images: updatedImages });
+                      }}
+                      placeholder="Image URL"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      onClick={() => {
+                        const updatedImages = [...(formProduct.images || [])].filter((_, i) => i !== index);
+                        setFormProduct({ ...formProduct, images: updatedImages });
+                      }}
+                      disabled={(formProduct.images || []).length <= 1}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => {
+                    setFormProduct({
+                      ...formProduct,
+                      images: [...(formProduct.images || []), ""]
+                    });
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Image
+                </Button>
+              </div>
+            </div>
+            
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <Label>Product Variants</Label>
+                <Button type="button" variant="outline" size="sm" onClick={handleAddVariant}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Variant
+                </Button>
+              </div>
+              
+              {formProduct.variants && formProduct.variants.length > 0 ? (
+                <div className="space-y-3">
+                  {formProduct.variants.map((variant, index) => (
+                    <div key={variant.id} className="border p-4 rounded-md">
+                      <div className="flex justify-between items-center mb-3">
+                        <h4 className="font-medium">Variant {index + 1}</h4>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveVariant(variant.id)}
+                          disabled={formProduct.variants?.length === 1}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor={`size-${variant.id}`}>Size</Label>
+                          <Select 
+                            value={variant.size} 
+                            onValueChange={(value) => handleVariantChange(variant.id, "size", value)}
+                          >
+                            <SelectTrigger id={`size-${variant.id}`}>
+                              <SelectValue placeholder="Select a size" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {["XS", "S", "M", "L", "XL", "XXL"].map((size) => (
+                                <SelectItem key={size} value={size}>
+                                  {size}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor={`color-${variant.id}`}>Color</Label>
+                          <Select 
+                            value={variant.color} 
+                            onValueChange={(value) => {
+                              const selectedColor = colorOptions.find(c => c.name === value);
+                              handleVariantChange(variant.id, "color", value);
+                              handleVariantChange(variant.id, "colorCode", selectedColor?.code || "#000000");
+                            }}
+                          >
+                            <SelectTrigger id={`color-${variant.id}`}>
+                              <SelectValue placeholder="Select a color" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {colorOptions.map((color) => (
+                                <SelectItem key={color.name} value={color.name}>
+                                  <div className="flex items-center gap-2">
+                                    <div 
+                                      className="w-4 h-4 rounded-full border border-border"
+                                      style={{ backgroundColor: color.code }}
+                                    ></div>
+                                    {color.name}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor={`stock-${variant.id}`}>Stock</Label>
+                          <Input
+                            id={`stock-${variant.id}`}
+                            type="number"
+                            min="0"
+                            value={variant.stock}
+                            onChange={(e) => handleVariantChange(variant.id, "stock", parseInt(e.target.value))}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 border rounded-md">
+                  <p className="text-muted-foreground">No variants added yet</p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowProductForm(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveProduct}>
+              <Save className="mr-2 h-4 w-4" />
+              Save Product
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Order View Dialog */}
+      <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          {viewingOrder && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex justify-between items-center">
+                  <span>Order #{viewingOrder.id}</span>
+                  <StatusBadge status={viewingOrder.status} />
+                </DialogTitle>
+                <DialogDescription>
+                  Placed on {new Date(viewingOrder.date).toLocaleDateString()} by {viewingOrder.customer.name}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="font-medium mb-2">Customer Information</h3>
+                    <div className="bg-muted/30 p-3 rounded-md">
+                      <p><strong>Name:</strong> {viewingOrder.customer.name}</p>
+                      <p><strong>Email:</strong> {viewingOrder.customer.email}</p>
+                      <p><strong>Phone:</strong> {viewingOrder.customer.phone}</p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-medium mb-2">Shipping Information</h3>
+                    <div className="bg-muted/30 p-3 rounded-md">
+                      <p>{viewingOrder.shippingAddress.street}</p>
+                      <p>{viewingOrder.shippingAddress.city}, {viewingOrder.shippingAddress.state} {viewingOrder.shippingAddress.zipCode}</p>
+                      <p>{viewingOrder.shippingAddress.country}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="font-medium mb-2">Order Items</h3>
+                  <div className="border rounded-md overflow-hidden">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-muted/50 text-left">
+                          <th className="p-3">Item</th>
+                          <th className="p-3">Quantity</th>
+                          <th className="p-3 text-right">Price</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {viewingOrder.items.map((item, index) => (
+                          <tr key={index} className="border-t">
+                            <td className="p-3">
+                              <div className="flex items-center gap-3">
+                                <div className="h-12 w-12 rounded-md bg-secondary overflow-hidden">
+                                  <img
+                                    src={item.product.images[0]}
+                                    alt={item.product.name}
+                                    className="h-full w-full object-cover"
+                                  />
+                                </div>
+                                <div>
+                                  <div className="font-medium">{item.product.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {item.variant.size}, {item.variant.color}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-3">{item.quantity}</td>
+                            <td className="p-3 text-right">₹{(item.price / 100).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-muted/20">
+                        <tr className="border-t">
+                          <td colSpan={2} className="p-3 text-right font-medium">Subtotal:</td>
+                          <td className="p-3 text-right">₹{(viewingOrder.subtotal / 100).toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                          <td colSpan={2} className="p-3 text-right font-medium">Shipping:</td>
+                          <td className="p-3 text-right">₹{(viewingOrder.shipping / 100).toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                          <td colSpan={2} className="p-3 text-right font-medium">Total:</td>
+                          <td className="p-3 text-right font-bold">₹{(viewingOrder.total / 100).toFixed(2)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="font-medium mb-2">Update Order Status</h3>
+                  <div className="flex flex-wrap gap-2">
+                    <Button 
+                      variant={viewingOrder.status === "Processing" ? "default" : "outline"}
+                      onClick={() => handleUpdateOrderStatus(viewingOrder.id, "Processing")}
+                    >
+                      Processing
+                    </Button>
+                    <Button 
+                      variant={viewingOrder.status === "Shipped" ? "default" : "outline"}
+                      onClick={() => handleUpdateOrderStatus(viewingOrder.id, "Shipped")}
+                    >
+                      Shipped
+                    </Button>
+                    <Button 
+                      variant={viewingOrder.status === "Delivered" ? "default" : "outline"}
+                      onClick={() => handleUpdateOrderStatus(viewingOrder.id, "Delivered")}
+                    >
+                      Delivered
+                    </Button>
+                    <Button 
+                      variant={viewingOrder.status === "Cancelled" ? "destructive" : "outline"}
+                      onClick={() => handleUpdateOrderStatus(viewingOrder.id, "Cancelled")}
+                    >
+                      Cancel Order
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// Helper component for Order Status Badge
+function StatusBadge({ status }: { status: OrderStatus }) {
+  const statusMap: Record<OrderStatus, { color: string, label: string }> = {
+    "Processing": { color: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-800/30 dark:text-blue-400 dark:border-blue-800", label: "Processing" },
+    "Shipped": { color: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-800/30 dark:text-yellow-400 dark:border-yellow-800", label: "Shipped" },
+    "Delivered": { color: "bg-green-100 text-green-800 border-green-200 dark:bg-green-800/30 dark:text-green-400 dark:border-green-800", label: "Delivered" },
+    "Cancelled": { color: "bg-red-100 text-red-800 border-red-200 dark:bg-red-800/30 dark:text-red-400 dark:border-red-800", label: "Cancelled" }
+  };
+  
+  const { color, label } = statusMap[status];
+  
+  return (
+    <div className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${color}`}>
+      {label}
     </div>
   );
 }

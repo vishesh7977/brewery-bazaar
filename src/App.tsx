@@ -7,6 +7,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { CartProvider } from "./contexts/CartContext";
 import { PageLoader } from "./components/ui/page-loader";
+import { useLocalStorage } from "./hooks/use-local-storage";
+import { products as initialProducts } from "./lib/data";
 
 import Index from "./pages/Index";
 import Products from "./pages/Products";
@@ -64,11 +66,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AppContent = () => {
   const [loading, setLoading] = useState(true);
   
+  // Initialize products in localStorage if not present
+  const [products, setProducts] = useLocalStorage("products", initialProducts);
+  
   useEffect(() => {
     // Simulate initial loading
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 1500);
+    }, 2000);
     
     return () => clearTimeout(timer);
   }, []);
