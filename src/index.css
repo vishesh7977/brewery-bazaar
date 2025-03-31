@@ -93,4 +93,31 @@
   .button-hover:hover {
     @apply bg-opacity-90;
   }
+
+  /* Improved UI Classes */
+  .section-padding {
+    @apply py-16 md:py-24 px-4 md:px-8;
+  }
+  
+  .card-shadow {
+    @apply shadow-md hover:shadow-lg transition-shadow duration-300;
+  }
+  
+  .glass-effect {
+    @apply backdrop-blur-sm bg-white/10 dark:bg-black/10;
+  }
+  
+  .hover-lift {
+    @apply transition-transform duration-300 hover:-translate-y-1;
+  }
+  
+  /* Improved typography */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-medium tracking-tight;
+  }
+  
+  /* Better form elements */
+  input, select, textarea {
+    @apply focus:ring-2 focus:ring-primary/20 transition-all duration-200;
+  }
 }

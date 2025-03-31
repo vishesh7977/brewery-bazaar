@@ -1,20 +1,53 @@
 
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, User, Menu, X, Search } from "lucide-react";
+import { ShoppingCart, User, Menu, X, Search, LogOut } from "lucide-react";
 import { categories } from "@/lib/data";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useToast } from "@/components/ui/use-toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // Filter categories to only show T-shirts and Shorts
+  const filteredCategories = categories.filter(
+    category => category.slug === "t-shirts" || category.slug === "shorts"
+  );
+
+  // Check authentication status
+  useEffect(() => {
+    const role = localStorage.getItem("userRole");
+    setUserRole(role);
+    setIsAuthenticated(!!role);
+  }, [location.pathname]); // Re-check when route changes
+
+  const handleLogout = () => {
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("userEmail");
+    setIsAuthenticated(false);
+    setUserRole(null);
+    
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out",
+    });
+    
+    navigate("/login");
+  };
 
   return (
     <nav className="border-b border-border">
@@ -52,7 +85,7 @@ export default function Navbar() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56">
-              {categories.map((category) => (
+              {filteredCategories.map((category) => (
                 <DropdownMenuItem key={category.id} asChild>
                   <Link 
                     to={`/products?category=${category.slug}`} 
@@ -70,13 +103,31 @@ export default function Navbar() {
             </DropdownMenuContent>
           </DropdownMenu>
           <Link 
-            to="/admin" 
+            to="/about-us" 
             className={`text-sm font-medium hover:text-black dark:hover:text-white transition-colors ${
-              location.pathname === "/admin" ? "text-black dark:text-white" : "text-muted-foreground"
+              location.pathname === "/about-us" ? "text-black dark:text-white" : "text-muted-foreground"
             }`}
           >
-            Admin
+            About Us
           </Link>
+          <Link 
+            to="/contact" 
+            className={`text-sm font-medium hover:text-black dark:hover:text-white transition-colors ${
+              location.pathname === "/contact" ? "text-black dark:text-white" : "text-muted-foreground"
+            }`}
+          >
+            Contact
+          </Link>
+          {userRole === "admin" && (
+            <Link 
+              to="/admin" 
+              className={`text-sm font-medium hover:text-black dark:hover:text-white transition-colors ${
+                location.pathname === "/admin" ? "text-black dark:text-white" : "text-muted-foreground"
+              }`}
+            >
+              Admin
+            </Link>
+          )}
         </div>
 
         {/* Actions */}
@@ -100,16 +151,51 @@ export default function Navbar() {
             </Link>
           </Button>
           <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="icon"
-            asChild
-            className="hidden md:flex"
-          >
-            <Link to="/login" aria-label="Account">
-              <User className="h-5 w-5" />
-            </Link>
-          </Button>
+          
+          {isAuthenticated ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="hidden md:flex">
+                  <User className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <div className="px-2 py-1.5 text-sm font-medium">
+                  {localStorage.getItem("userName")}
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="cursor-pointer">
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                {userRole === "admin" && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin" className="cursor-pointer">
+                      Admin Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+              className="hidden md:flex"
+            >
+              <Link to="/login" aria-label="Account">
+                <User className="h-5 w-5" />
+              </Link>
+            </Button>
+          )}
+          
           <Button
             variant="ghost"
             size="icon"
@@ -136,7 +222,7 @@ export default function Navbar() {
             <div className="py-2">
               <div className="text-base font-medium mb-2">Shop</div>
               <div className="pl-4 space-y-2">
-                {categories.map((category) => (
+                {filteredCategories.map((category) => (
                   <Link
                     key={category.id}
                     to={`/products?category=${category.slug}`}
@@ -156,19 +242,58 @@ export default function Navbar() {
               </div>
             </div>
             <Link
-              to="/admin"
+              to="/about-us"
               className="block py-2 text-base font-medium hover:text-black dark:hover:text-white"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Admin
+              About Us
             </Link>
             <Link
-              to="/login"
+              to="/contact"
               className="block py-2 text-base font-medium hover:text-black dark:hover:text-white"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Account
+              Contact
             </Link>
+            {userRole === "admin" && (
+              <Link
+                to="/admin"
+                className="block py-2 text-base font-medium hover:text-black dark:hover:text-white"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Admin Dashboard
+              </Link>
+            )}
+            {isAuthenticated ? (
+              <>
+                <Link
+                  to="/profile"
+                  className="block py-2 text-base font-medium hover:text-black dark:hover:text-white"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Profile
+                </Link>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start p-0 h-auto py-2 text-base font-medium hover:text-black dark:hover:text-white"
+                  onClick={() => {
+                    handleLogout();
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                className="block py-2 text-base font-medium hover:text-black dark:hover:text-white"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Account
+              </Link>
+            )}
           </div>
         </div>
       )}

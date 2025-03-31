@@ -3,29 +3,105 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { products, categories } from "@/lib/data";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ShoppingBag, Star, Truck, Lock } from "lucide-react";
 
 export default function Index() {
   // Filter products that are marked as featured
-  const featuredProducts = products.filter(product => product.featured);
+  const featuredProducts = products
+    .filter(product => product.featured)
+    .filter(product => product.category === "t-shirts" || product.category === "shorts");
+
+  const filteredCategories = categories.filter(
+    category => category.slug === "t-shirts" || category.slug === "shorts"
+  );
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="bg-background py-16 md:py-24">
+      {/* Hero Section - Different for Desktop and Mobile */}
+      <section className="relative bg-secondary">
+        {/* Desktop Hero */}
+        <div className="hidden md:block">
+          <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 px-4 py-16 md:py-24">
+            <div className="flex flex-col justify-center">
+              <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6">
+                Elevate Your<br />Streetwear Game
+              </h1>
+              <p className="text-lg md:text-xl text-muted-foreground mb-10">
+                Premium pieces inspired by Mumbai's vibrant culture. Quality craftsmanship meets urban aesthetics.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button asChild size="lg" className="text-base">
+                  <Link to="/products">Shop Now</Link>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="text-base">
+                  <Link to="/about-us">Our Story</Link>
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-center justify-center">
+              <img 
+                src="https://images.unsplash.com/photo-1523381294911-8d3cead13475?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" 
+                alt="Brewery Streetwear" 
+                className="rounded-lg w-full h-auto"
+              />
+            </div>
+          </div>
+        </div>
+        
+        {/* Mobile Hero */}
+        <div className="md:hidden">
+          <div className="relative">
+            <img 
+              src="https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" 
+              alt="Brewery Streetwear Mobile" 
+              className="w-full h-[80vh] object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-6">
+              <h1 className="text-4xl font-bold tracking-tight mb-4 text-white">
+                Elevate Your Streetwear Game
+              </h1>
+              <p className="text-lg text-white/80 mb-6">
+                Premium pieces inspired by Mumbai's vibrant culture.
+              </p>
+              <Button asChild size="lg" className="text-base w-full">
+                <Link to="/products">Shop Now</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Brand Features */}
+      <section className="py-12 bg-background">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">Elevate Your Streetwear Game</h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-10">
-              Premium pieces inspired by Mumbai's vibrant culture. Quality craftsmanship meets urban aesthetics.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" className="text-base">
-                <Link to="/products">Shop Collection</Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="text-base">
-                <Link to="/products?category=new-arrivals">New Arrivals</Link>
-              </Button>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
+            <div className="flex flex-col items-center">
+              <ShoppingBag className="h-8 w-8 mb-4" />
+              <h3 className="text-lg font-medium mb-2">Premium Quality</h3>
+              <p className="text-sm text-muted-foreground">
+                Crafted with the finest materials for lasting comfort
+              </p>
+            </div>
+            <div className="flex flex-col items-center">
+              <Star className="h-8 w-8 mb-4" />
+              <h3 className="text-lg font-medium mb-2">Mumbai Inspired</h3>
+              <p className="text-sm text-muted-foreground">
+                Designs that capture the city's vibrant spirit
+              </p>
+            </div>
+            <div className="flex flex-col items-center">
+              <Truck className="h-8 w-8 mb-4" />
+              <h3 className="text-lg font-medium mb-2">Free Shipping</h3>
+              <p className="text-sm text-muted-foreground">
+                On all orders above ₹999 across India
+              </p>
+            </div>
+            <div className="flex flex-col items-center">
+              <Lock className="h-8 w-8 mb-4" />
+              <h3 className="text-lg font-medium mb-2">Secure Checkout</h3>
+              <p className="text-sm text-muted-foreground">
+                Shop with confidence using trusted payment methods
+              </p>
             </div>
           </div>
         </div>
@@ -45,7 +121,7 @@ export default function Index() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {featuredProducts.map((product) => (
               <Link key={product.id} to={`/product/${product.id}`}>
-                <Card className="group overflow-hidden border-none rounded-md">
+                <Card className="group overflow-hidden border-none rounded-md card-shadow hover-lift">
                   <div className="aspect-square bg-muted relative overflow-hidden">
                     <img
                       src={product.images[0]}
@@ -87,17 +163,25 @@ export default function Index() {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center">Shop by Category</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {categories.map((category) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {filteredCategories.map((category) => (
               <Link
                 key={category.id}
                 to={`/products?category=${category.slug}`}
-                className="group block bg-secondary rounded-md overflow-hidden aspect-square relative hover:bg-secondary/80 transition-colors"
+                className="group block relative overflow-hidden aspect-video rounded-lg card-shadow"
               >
-                <div className="absolute inset-0 flex items-center justify-center text-center p-4">
-                  <span className="font-medium group-hover:underline">
-                    {category.name}
-                  </span>
+                <img 
+                  src={`https://images.unsplash.com/photo-1529720317453-c8da503f2051?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80`}
+                  alt={category.name}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-6">
+                  <div>
+                    <h3 className="text-2xl font-bold text-white mb-2">{category.name}</h3>
+                    <Button size="sm" variant="outline" className="bg-white/20 text-white border-white/40 hover:bg-white/30">
+                      Shop Now
+                    </Button>
+                  </div>
                 </div>
               </Link>
             ))}

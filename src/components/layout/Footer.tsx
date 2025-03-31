@@ -1,5 +1,6 @@
 
 import { Link } from "react-router-dom";
+import { Mail, Phone, MapPin, Instagram, Twitter, Facebook } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -18,6 +19,26 @@ export default function Footer() {
             <p className="text-sm text-muted-foreground">
               Premium streetwear brand offering stylish and affordable clothing inspired by Mumbai's vibrant culture.
             </p>
+            <div className="pt-2 space-y-2">
+              <div className="flex items-center">
+                <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                <a href="mailto:contact@brewery.com" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  contact@brewery.com
+                </a>
+              </div>
+              <div className="flex items-center">
+                <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+                <a href="tel:+919876543210" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  +91 98765 43210
+                </a>
+              </div>
+              <div className="flex items-center">
+                <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  42 Fashion Street, Mumbai - 400001
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Shop */}
@@ -30,23 +51,18 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/products?category=hoodies" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Hoodies
-                </Link>
-              </li>
-              <li>
-                <Link to="/products?category=pants" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Pants
-                </Link>
-              </li>
-              <li>
                 <Link to="/products?category=shorts" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   Shorts
                 </Link>
               </li>
               <li>
-                <Link to="/products?category=jackets" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Jackets
+                <Link to="/products" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  New Arrivals
+                </Link>
+              </li>
+              <li>
+                <Link to="/products" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Sale
                 </Link>
               </li>
             </ul>
@@ -57,7 +73,7 @@ export default function Footer() {
             <h4 className="text-sm font-semibold">Company</h4>
             <ul className="space-y-2">
               <li>
-                <Link to="/about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Link to="/about-us" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                   About Us
                 </Link>
               </li>
@@ -122,14 +138,17 @@ export default function Footer() {
             © {new Date().getFullYear()} Brewery. All rights reserved.
           </p>
           <div className="mt-4 md:mt-0 flex space-x-6">
-            <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-              Instagram
+            <a href="https://instagram.com" className="text-muted-foreground hover:text-foreground transition-colors">
+              <Instagram className="h-5 w-5" />
+              <span className="sr-only">Instagram</span>
             </a>
-            <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-              Twitter
+            <a href="https://twitter.com" className="text-muted-foreground hover:text-foreground transition-colors">
+              <Twitter className="h-5 w-5" />
+              <span className="sr-only">Twitter</span>
             </a>
-            <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-              Facebook
+            <a href="https://facebook.com" className="text-muted-foreground hover:text-foreground transition-colors">
+              <Facebook className="h-5 w-5" />
+              <span className="sr-only">Facebook</span>
             </a>
           </div>
         </div>

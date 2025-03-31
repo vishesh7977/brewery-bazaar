@@ -86,17 +86,15 @@ export default function CartPage() {
     });
   };
   
-  // For demo purposes: proceed to checkout
+  // Proceed to Razorpay checkout
   const handleCheckout = () => {
     toast({
-      title: "Checkout initiated",
-      description: "This would typically redirect to the payment page",
+      title: "Redirecting to payment",
+      description: "You will be redirected to the Razorpay payment gateway",
     });
     
-    // In a real app, this would redirect to a checkout page
-    setTimeout(() => {
-      navigate("/");
-    }, 2000);
+    // Redirect to Razorpay link
+    window.location.href = "https://rzp.io/rzp/I3iwiEk";
   };
   
   // Empty cart view
@@ -271,6 +269,7 @@ export default function CartPage() {
             
             <div className="mt-4 text-center text-sm text-muted-foreground">
               <p>Free shipping on all orders</p>
+              <p className="mt-2">Secure payment via Razorpay</p>
             </div>
           </div>
         </div>
