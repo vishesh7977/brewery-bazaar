@@ -25,6 +25,11 @@ export default function Profile() {
   const [phone, setPhone] = useState("9876543210"); // Example phone number
   
   const handleLogout = () => {
+    // Clear localStorage
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("userEmail");
+    
     toast({
       title: "Logged out",
       description: "You have been successfully logged out",
@@ -60,38 +65,36 @@ export default function Profile() {
           </div>
           
           <div className="border rounded-lg overflow-hidden">
-            <Tabs value={activeTab} onValueChange={setActiveTab} orientation="vertical" className="w-full">
-              <TabsList className="flex flex-col items-stretch h-auto bg-transparent border-r p-0">
-                <TabsTrigger 
-                  value="profile" 
-                  className="justify-start px-4 py-3 data-[state=active]:bg-secondary data-[state=active]:shadow-none rounded-none border-b"
-                >
-                  <User className="h-4 w-4 mr-2" />
-                  My Profile
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="orders" 
-                  className="justify-start px-4 py-3 data-[state=active]:bg-secondary data-[state=active]:shadow-none rounded-none border-b"
-                >
-                  <Package className="h-4 w-4 mr-2" />
-                  My Orders
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="reviews" 
-                  className="justify-start px-4 py-3 data-[state=active]:bg-secondary data-[state=active]:shadow-none rounded-none border-b"
-                >
-                  <Star className="h-4 w-4 mr-2" />
-                  My Reviews
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="wishlist" 
-                  className="justify-start px-4 py-3 data-[state=active]:bg-secondary data-[state=active]:shadow-none rounded-none"
-                >
-                  <Heart className="h-4 w-4 mr-2" />
-                  Wishlist
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <div className="flex flex-col items-stretch h-auto bg-transparent border-r p-0">
+              <button 
+                onClick={() => setActiveTab("profile")}
+                className={`flex items-center justify-start px-4 py-3 text-left text-sm font-medium border-b ${activeTab === "profile" ? "bg-secondary" : ""}`}
+              >
+                <User className="h-4 w-4 mr-2" />
+                My Profile
+              </button>
+              <button 
+                onClick={() => setActiveTab("orders")}
+                className={`flex items-center justify-start px-4 py-3 text-left text-sm font-medium border-b ${activeTab === "orders" ? "bg-secondary" : ""}`}
+              >
+                <Package className="h-4 w-4 mr-2" />
+                My Orders
+              </button>
+              <button 
+                onClick={() => setActiveTab("reviews")}
+                className={`flex items-center justify-start px-4 py-3 text-left text-sm font-medium border-b ${activeTab === "reviews" ? "bg-secondary" : ""}`}
+              >
+                <Star className="h-4 w-4 mr-2" />
+                My Reviews
+              </button>
+              <button 
+                onClick={() => setActiveTab("wishlist")}
+                className={`flex items-center justify-start px-4 py-3 text-left text-sm font-medium ${activeTab === "wishlist" ? "bg-secondary" : ""}`}
+              >
+                <Heart className="h-4 w-4 mr-2" />
+                Wishlist
+              </button>
+            </div>
           </div>
           
           <Button variant="outline" className="w-full" onClick={handleLogout}>
@@ -102,7 +105,7 @@ export default function Profile() {
         
         {/* Main Content */}
         <div className="md:col-span-3">
-          <TabsContent value="profile" className="mt-0">
+          {activeTab === "profile" && (
             <Card>
               <CardHeader className="flex flex-row items-start justify-between">
                 <div>
@@ -210,9 +213,9 @@ export default function Profile() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
           
-          <TabsContent value="orders" className="mt-0">
+          {activeTab === "orders" && (
             <Card>
               <CardHeader>
                 <CardTitle>My Orders</CardTitle>
@@ -235,9 +238,9 @@ export default function Profile() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
           
-          <TabsContent value="reviews" className="mt-0">
+          {activeTab === "reviews" && (
             <Card>
               <CardHeader>
                 <CardTitle>My Reviews</CardTitle>
@@ -260,9 +263,9 @@ export default function Profile() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
           
-          <TabsContent value="wishlist" className="mt-0">
+          {activeTab === "wishlist" && (
             <Card>
               <CardHeader>
                 <CardTitle>My Wishlist</CardTitle>
@@ -285,7 +288,7 @@ export default function Profile() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
         </div>
       </div>
     </div>
