@@ -18,8 +18,9 @@ export default function Index() {
     .filter(product => product.featured)
     .slice(0, 4); // Ensure we only show up to 4 featured products
 
+  // Fix the filtering condition - using slug directly since 'category' property doesn't exist
   const filteredCategories = categories.filter(
-    category => category.slug === "t-shirts" || category.slug === "shorts" || category.category === "hoodies"
+    category => category.slug === "t-shirts" || category.slug === "shorts" || category.slug === "hoodies"
   );
 
   // Format price for display
