@@ -384,7 +384,7 @@ export default function Products() {
                           
                           <motion.div
                             initial={{ opacity: 0, y: 20 }}
-                            whileHover={{ opacity: a: 1, y: 0 }}
+                            whileHover={{ opacity: 1, y: 0 }}
                             className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
                             <Button 
