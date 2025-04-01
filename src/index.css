@@ -34,7 +34,7 @@
     --input: 0 0% 88%;
     --ring: 0 0% 12%;
 
-    --radius: 0.3rem;
+    --radius: 0.5rem;
   }
 
   .dark {
@@ -100,7 +100,7 @@
   }
   
   .card-shadow {
-    @apply shadow-md hover:shadow-lg transition-shadow duration-300;
+    @apply shadow-md hover:shadow-xl transition-shadow duration-300;
   }
   
   .glass-effect {
@@ -109,6 +109,18 @@
   
   .hover-lift {
     @apply transition-transform duration-300 hover:-translate-y-1;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent;
+  }
+  
+  .gradient-bg {
+    @apply bg-gradient-to-br from-secondary/50 to-background;
+  }
+  
+  .gradient-card {
+    @apply bg-gradient-to-br from-card to-card/50 hover:from-card/80 hover:to-card/30 transition-colors;
   }
   
   /* Improved typography */
@@ -119,5 +131,29 @@
   /* Better form elements */
   input, select, textarea {
     @apply focus:ring-2 focus:ring-primary/20 transition-all duration-200;
+  }
+  
+  /* Button enhancement */
+  .btn-gradient {
+    @apply bg-gradient-to-r from-primary to-primary/90 hover:opacity-90 transition-opacity;
+  }
+
+  .btn-outline-hover {
+    @apply border-primary/30 hover:bg-primary/10 transition-colors;
+  }
+  
+  /* Card animations */
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+  }
+  
+  /* Image hover effects */
+  .img-zoom {
+    @apply transform transition-transform duration-500 hover:scale-110;
+  }
+
+  /* Navigation improvements */
+  .nav-link {
+    @apply relative after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-primary after:transition-all after:duration-300 hover:after:w-full;
   }
 }

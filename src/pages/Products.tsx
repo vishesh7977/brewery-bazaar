@@ -9,7 +9,8 @@ import { Link } from "react-router-dom";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { ChevronDown, ChevronUp, SlidersHorizontal, X } from "lucide-react";
+import { ChevronDown, ChevronUp, SlidersHorizontal, X, Star } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function Products() {
   const location = useLocation();
@@ -102,15 +103,26 @@ export default function Products() {
   const toggleFilters = () => {
     setShowFilters(!showFilters);
   };
+
+  // Animation variants
+  const fadeIn = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+  };
   
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">
+      <motion.h1 
+        initial="hidden"
+        animate="visible"
+        variants={fadeIn}
+        className="text-3xl font-bold mb-8 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent"
+      >
         {filters.category 
           ? `${categories.find(c => c.slug === filters.category)?.name || "Products"}`
           : "All Products"
         }
-      </h1>
+      </motion.h1>
       
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Mobile filter toggle */}
@@ -118,7 +130,7 @@ export default function Products() {
           <Button 
             variant="outline" 
             onClick={toggleFilters}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 border-primary/30 hover:bg-primary/10"
           >
             <SlidersHorizontal className="h-4 w-4" />
             Filters
@@ -133,7 +145,7 @@ export default function Products() {
             <Button 
               variant="ghost" 
               onClick={clearFilters}
-              className="text-sm flex items-center gap-1"
+              className="text-sm flex items-center gap-1 hover:bg-destructive/10"
             >
               <X className="h-4 w-4" />
               Clear
@@ -141,15 +153,20 @@ export default function Products() {
           )}
         </div>
         
-        {/* Filters sidebar */}
-        <div className={`${showFilters ? 'block' : 'hidden'} lg:block w-full lg:w-64 space-y-6`}>
+        {/* Filters sidebar with improved styling */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className={`${showFilters ? 'block' : 'hidden'} lg:block w-full lg:w-64 space-y-6 bg-card/30 p-4 rounded-lg border border-border/50`}
+        >
           <div className="hidden lg:flex justify-between items-center mb-4">
             <h2 className="font-medium">Filters</h2>
             {(filters.category || filters.size || filters.color || filters.price[0] > 0 || filters.price[1] < 10000) && (
               <Button 
                 variant="ghost" 
                 onClick={clearFilters}
-                className="text-sm flex items-center gap-1"
+                className="text-sm flex items-center gap-1 hover:bg-destructive/10"
               >
                 <X className="h-4 w-4" />
                 Clear
@@ -159,13 +176,13 @@ export default function Products() {
           
           {/* Categories filter */}
           <div className="border-t pt-4">
-            <h3 className="font-medium mb-3">Categories</h3>
+            <h3 className="font-medium mb-3 text-foreground/90">Categories</h3>
             <div className="space-y-2">
               <div className="flex items-center">
                 <Button
                   variant="ghost"
                   onClick={() => handleCategoryChange(null)}
-                  className={`text-sm justify-start px-2 h-8 ${
+                  className={`text-sm justify-start px-2 h-8 w-full ${
                     filters.category === null ? "bg-secondary" : ""
                   }`}
                 >
@@ -177,7 +194,7 @@ export default function Products() {
                   <Button
                     variant="ghost"
                     onClick={() => handleCategoryChange(category.slug)}
-                    className={`text-sm justify-start px-2 h-8 ${
+                    className={`text-sm justify-start px-2 h-8 w-full ${
                       filters.category === category.slug ? "bg-secondary" : ""
                     }`}
                   >
@@ -190,7 +207,7 @@ export default function Products() {
           
           {/* Price filter */}
           <div className="border-t pt-4">
-            <h3 className="font-medium mb-3">Price Range</h3>
+            <h3 className="font-medium mb-3 text-foreground/90">Price Range</h3>
             <div className="px-2">
               <Slider
                 defaultValue={[0, 10000]}
@@ -209,7 +226,7 @@ export default function Products() {
           
           {/* Size filter */}
           <div className="border-t pt-4">
-            <h3 className="font-medium mb-3">Size</h3>
+            <h3 className="font-medium mb-3 text-foreground/90">Size</h3>
             <div className="grid grid-cols-4 gap-2">
               {sizes.map((size) => (
                 <Button
@@ -217,7 +234,7 @@ export default function Products() {
                   variant={filters.size === size ? "default" : "outline"}
                   size="sm"
                   onClick={() => handleSizeChange(size)}
-                  className="h-8"
+                  className={`h-8 ${filters.size === size ? "bg-primary hover:bg-primary/90" : "border-primary/30 hover:bg-primary/10"}`}
                 >
                   {size}
                 </Button>
@@ -227,7 +244,7 @@ export default function Products() {
           
           {/* Color filter */}
           <div className="border-t pt-4">
-            <h3 className="font-medium mb-3">Color</h3>
+            <h3 className="font-medium mb-3 text-foreground/90">Color</h3>
             <div className="flex flex-wrap gap-3">
               {colors.map((color) => (
                 <div key={color.name} className="flex flex-col items-center gap-1">
@@ -245,10 +262,15 @@ export default function Products() {
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
         
-        {/* Products grid */}
-        <div className="flex-1">
+        {/* Products grid with improved card design */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex-1"
+        >
           {filteredProducts.length > 0 ? (
             <>
               <p className="text-sm text-muted-foreground mb-4">
@@ -257,12 +279,12 @@ export default function Products() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredProducts.map((product) => (
                   <Link key={product.id} to={`/product/${product.id}`}>
-                    <Card className="group overflow-hidden border-none rounded-md">
-                      <div className="aspect-square bg-muted relative overflow-hidden">
+                    <Card className="group overflow-hidden border-none rounded-md shadow-md hover:shadow-xl transition-all duration-300">
+                      <div className="aspect-square bg-gradient-to-br from-muted/50 to-muted relative overflow-hidden">
                         <img
                           src={product.images[0]}
                           alt={product.name}
-                          className="object-cover w-full h-full product-image-hover"
+                          className="object-cover w-full h-full transform transition-transform duration-500 group-hover:scale-110"
                         />
                         {product.originalPrice && (
                           <div className="absolute top-2 left-2 bg-black text-white text-xs font-medium px-2 py-1 rounded">
@@ -270,13 +292,30 @@ export default function Products() {
                           </div>
                         )}
                       </div>
-                      <CardContent className="pt-4 px-2">
+                      <CardContent className="pt-4 px-3">
                         <div className="text-sm text-muted-foreground mb-1 capitalize">
                           {product.category.replace('-', ' ')}
                         </div>
-                        <h3 className="font-medium mb-1 group-hover:underline transition-all">
+                        <h3 className="font-medium mb-1 group-hover:text-primary transition-colors">
                           {product.name}
                         </h3>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="flex">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`h-3 w-3 ${
+                                  i < Math.floor(product.rating)
+                                    ? "text-yellow-500 fill-yellow-500"
+                                    : "text-muted-foreground"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            ({product.reviews})
+                          </span>
+                        </div>
                         <div className="flex items-center gap-2">
                           <span className="font-medium">
                             ₹{(product.price / 100).toFixed(2)}
@@ -294,7 +333,7 @@ export default function Products() {
               </div>
             </>
           ) : (
-            <div className="text-center py-12">
+            <div className="text-center py-12 bg-card/30 rounded-lg border border-border/50">
               <h3 className="text-lg font-medium mb-2">No products found</h3>
               <p className="text-muted-foreground mb-6">
                 Try adjusting your filters or browse our categories below.
@@ -305,6 +344,7 @@ export default function Products() {
                     key={category.id}
                     variant="outline"
                     onClick={() => handleCategoryChange(category.slug)}
+                    className="border-primary/30 hover:bg-primary/10"
                   >
                     {category.name}
                   </Button>
@@ -312,7 +352,7 @@ export default function Products() {
               </div>
             </div>
           )}
-        </div>
+        </motion.div>
       </div>
     </div>
   );
