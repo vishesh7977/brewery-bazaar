@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 
 interface PageLoaderProps {
   loading?: boolean;
@@ -22,33 +22,19 @@ export function PageLoader({ loading = true }: PageLoaderProps) {
   }, [loading]);
 
   // SVG animation variants
-  const brewingAnimation = {
+  const brewingAnimation: Variants = {
     initial: { pathLength: 0, pathOffset: 0 },
     animate: {
       pathLength: 1,
       pathOffset: 0,
-      transition: {
-        duration: 2,
-        ease: "easeInOut",
-        repeat: Infinity,
-        repeatType: "loop",
-        repeatDelay: 0.2
-      }
     }
   };
 
-  const liquidAnimation = {
+  const liquidAnimation: Variants = {
     initial: { y: 50, opacity: 0 },
     animate: {
       y: 0,
       opacity: 1,
-      transition: {
-        duration: 1,
-        ease: "easeOut",
-        repeat: Infinity,
-        repeatType: "reverse",
-        repeatDelay: 0.2
-      }
     }
   };
 
@@ -87,6 +73,13 @@ export function PageLoader({ loading = true }: PageLoaderProps) {
                   initial="initial"
                   animate="animate"
                   variants={brewingAnimation}
+                  transition={{
+                    duration: 2,
+                    ease: "easeInOut",
+                    repeat: Infinity,
+                    repeatType: "loop",
+                    repeatDelay: 0.2
+                  }}
                   className="text-primary"
                 />
                 
@@ -99,6 +92,13 @@ export function PageLoader({ loading = true }: PageLoaderProps) {
                   initial="initial"
                   animate="animate"
                   variants={brewingAnimation}
+                  transition={{
+                    duration: 2,
+                    ease: "easeInOut",
+                    repeat: Infinity,
+                    repeatType: "loop",
+                    repeatDelay: 0.2
+                  }}
                   className="text-primary"
                 />
                 
@@ -113,6 +113,13 @@ export function PageLoader({ loading = true }: PageLoaderProps) {
                   initial="initial"
                   animate="animate"
                   variants={liquidAnimation}
+                  transition={{
+                    duration: 1,
+                    ease: "easeOut",
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                    repeatDelay: 0.2
+                  }}
                   className="text-primary/50"
                 />
                 
@@ -125,6 +132,13 @@ export function PageLoader({ loading = true }: PageLoaderProps) {
                   initial="initial"
                   animate="animate"
                   variants={brewingAnimation}
+                  transition={{
+                    duration: 2,
+                    ease: "easeInOut",
+                    repeat: Infinity,
+                    repeatType: "loop",
+                    repeatDelay: 0.2
+                  }}
                 />
               </motion.svg>
             </div>
@@ -141,12 +155,12 @@ export function PageLoader({ loading = true }: PageLoaderProps) {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ 
-                opacity: [0, 1, 0],
-                transition: {
-                  duration: 1.5,
-                  repeat: Infinity,
-                  repeatDelay: 0.2
-                }
+                opacity: [0, 1, 0]
+              }}
+              transition={{
+                duration: 1.5,
+                repeat: Infinity,
+                repeatDelay: 0.2
               }}
               className="mt-3 text-sm text-muted-foreground"
             >

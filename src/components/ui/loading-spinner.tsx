@@ -1,7 +1,7 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 
 interface LoadingSpinnerProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: "sm" | "md" | "lg";
@@ -82,33 +82,19 @@ export function LoadingSpinner({
     };
     
     // SVG animation variants
-    const brewingAnimation = {
+    const brewingAnimation: Variants = {
       initial: { pathLength: 0, pathOffset: 0 },
-      animate: {
+      animate: { 
         pathLength: 1,
         pathOffset: 0,
-        transition: {
-          duration: 2,
-          ease: "easeInOut",
-          repeat: Infinity,
-          repeatType: "loop",
-          repeatDelay: 0.2
-        }
       }
     };
 
-    const liquidAnimation = {
+    const liquidAnimation: Variants = {
       initial: { y: 20, opacity: 0 },
-      animate: {
+      animate: { 
         y: 0,
         opacity: 1,
-        transition: {
-          duration: 1,
-          ease: "easeOut",
-          repeat: Infinity,
-          repeatType: "reverse",
-          repeatDelay: 0.2
-        }
       }
     };
     
@@ -129,6 +115,13 @@ export function LoadingSpinner({
             initial="initial"
             animate="animate"
             variants={brewingAnimation}
+            transition={{ 
+              duration: 2, 
+              ease: "easeInOut", 
+              repeat: Infinity, 
+              repeatType: "loop", 
+              repeatDelay: 0.2 
+            }}
           />
           
           {/* Beer mug handle */}
@@ -140,6 +133,13 @@ export function LoadingSpinner({
             initial="initial"
             animate="animate"
             variants={brewingAnimation}
+            transition={{ 
+              duration: 2, 
+              ease: "easeInOut", 
+              repeat: Infinity, 
+              repeatType: "loop", 
+              repeatDelay: 0.2 
+            }}
           />
           
           {/* Beer liquid */}
@@ -153,6 +153,13 @@ export function LoadingSpinner({
             initial="initial"
             animate="animate"
             variants={liquidAnimation}
+            transition={{ 
+              duration: 1, 
+              ease: "easeOut", 
+              repeat: Infinity, 
+              repeatType: "reverse", 
+              repeatDelay: 0.2 
+            }}
             style={{ opacity: 0.5 }}
           />
           
@@ -165,6 +172,13 @@ export function LoadingSpinner({
             initial="initial"
             animate="animate"
             variants={brewingAnimation}
+            transition={{ 
+              duration: 2, 
+              ease: "easeInOut", 
+              repeat: Infinity, 
+              repeatType: "loop", 
+              repeatDelay: 0.2 
+            }}
           />
         </motion.svg>
         <span className="sr-only">Loading...</span>
