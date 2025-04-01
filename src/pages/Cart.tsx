@@ -28,7 +28,7 @@ import { motion } from "framer-motion";
 export default function Cart() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { cart, updateQuantity, clearCart } = useCart();
   const [orders, setOrders] = useLocalStorage<Order[]>("orders", []);
   
   // Shipping form state
@@ -55,7 +55,7 @@ export default function Cart() {
   };
   
   // Calculate cart totals
-  const subtotal = cart.reduce(
+  const subtotal = cart.items.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
@@ -94,19 +94,19 @@ export default function Cart() {
       id: orderId,
       date: new Date().toISOString(),
       customer: {
+        id: `cust-${Date.now()}`,
         name: shippingInfo.fullName,
         email: shippingInfo.email,
         phone: shippingInfo.phone,
       },
       shippingAddress: {
         street: shippingInfo.address,
-        street2: shippingInfo.address2,
         city: shippingInfo.city,
         state: shippingInfo.state,
         zipCode: shippingInfo.zipCode,
         country: shippingInfo.country,
       },
-      items: cart.map(item => ({
+      items: cart.items.map(item => ({
         product: item.product,
         variant: item.variant,
         quantity: item.quantity,
@@ -151,8 +151,13 @@ export default function Cart() {
     });
   };
   
+  // Custom removeFromCart function since it doesn't exist in CartContextType
+  const removeFromCart = (item: any) => {
+    updateQuantity(item.productId, item.variantId, 0);
+  };
+  
   // Empty cart view
-  if (cart.length === 0) {
+  if (cart.items.length === 0) {
     return (
       <div className="container mx-auto px-4 py-16">
         <div className="flex justify-between items-center mb-8">
@@ -209,9 +214,9 @@ export default function Cart() {
             className="bg-card border border-border/50 rounded-lg overflow-hidden"
           >
             <div className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Cart Items ({cart.length})</h2>
+              <h2 className="text-xl font-semibold mb-4">Cart Items ({cart.items.length})</h2>
               <div className="space-y-6">
-                {cart.map((item, index) => (
+                {cart.items.map((item, index) => (
                   <motion.div 
                     key={`${item.product.id}-${item.variant.id}`}
                     initial={{ opacity: 0, y: 20 }}
@@ -250,7 +255,7 @@ export default function Cart() {
                             variant="outline"
                             size="icon"
                             className="h-8 w-8 rounded-r-none"
-                            onClick={() => updateQuantity(item, item.quantity - 1)}
+                            onClick={() => updateQuantity(item.productId, item.variantId, item.quantity - 1)}
                             disabled={item.quantity <= 1}
                           >
                             <Minus className="h-3 w-3" />
@@ -262,7 +267,7 @@ export default function Cart() {
                             variant="outline"
                             size="icon"
                             className="h-8 w-8 rounded-l-none"
-                            onClick={() => updateQuantity(item, item.quantity + 1)}
+                            onClick={() => updateQuantity(item.productId, item.variantId, item.quantity + 1)}
                             disabled={item.quantity >= item.variant.stock}
                           >
                             <Plus className="h-3 w-3" />

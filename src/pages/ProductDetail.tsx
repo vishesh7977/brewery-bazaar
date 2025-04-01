@@ -1,159 +1,109 @@
 
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { useLocalStorage } from "@/hooks/use-local-storage";
-import { Product, ProductVariant } from "@/types";
-import { products as initialProducts } from "@/lib/data";
-import { 
-  ChevronLeft, 
-  ShoppingCart, 
-  Truck, 
-  Shield, 
-  Clock, 
-  Star, 
-  Heart,
-} from "lucide-react";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { 
-  Card, 
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle, 
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Badge } from "@/components/ui/badge";
-import { motion } from "framer-motion";
-import SizeChart from "@/components/product/SizeChart";
-import Reviews from "@/components/product/Reviews";
-import ReviewForm from "@/components/product/ReviewForm";
-import { useCart } from "@/contexts/CartContext";
+import { Separator } from "@/components/ui/separator";
+import { ChevronLeft, ChevronRight, Star, Package, ShoppingBag, CircleCheck, CircleAlert, Share2, Heart, Eye, Truck, RotateCcw, Shield, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Tab, Tabs, TabList, TabPanel } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { SizeChart } from "@/components/product/SizeChart";
+import { Reviews } from "@/components/product/Reviews";
+import { ReviewForm } from "@/components/product/ReviewForm";
+import { products as initialProducts } from "@/lib/data";
+import { motion, AnimatePresence } from "framer-motion";
+import { useCart } from "@/contexts/CartContext";
+import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { Product, ProductVariant } from "@/types";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { toast } = useToast();
-  const { addToCart } = useCart();
+  const { addItem } = useCart();
   
-  // Get products from localStorage to include new products added by admin
-  const [storedProducts] = useLocalStorage<Product[]>("products", initialProducts);
+  // Get products from localStorage or use initial data
+  const products = JSON.parse(localStorage.getItem("products") || JSON.stringify(initialProducts));
   
-  const [product, setProduct] = useState<Product | null>(null);
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("description");
+  // Find the product by ID
+  const product = products.find((p: Product) => p.id === id);
+  
+  // If product not found, navigate to 404
+  useEffect(() => {
+    if (!product) {
+      navigate("/not-found");
+    }
+  }, [product, navigate]);
+  
+  // State for selected variant, image, and quantity
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
+    product?.variants?.length ? product.variants[0] : null
+  );
+  const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [showSizeChart, setShowSizeChart] = useState(false);
-  
-  // Find the product with the given ID
-  useEffect(() => {
-    if (id) {
-      const foundProduct = storedProducts.find(p => p.id === id);
-      if (foundProduct) {
-        setProduct(foundProduct);
-        // Set default size and color from first variant if available
-        if (foundProduct.variants && foundProduct.variants.length > 0) {
-          setSelectedSize(foundProduct.variants[0].size);
-          setSelectedColor(foundProduct.variants[0].color);
-          setSelectedVariant(foundProduct.variants[0]);
-        }
-      }
-    }
-  }, [id, storedProducts]);
-  
-  // Update selected variant when size or color changes
-  useEffect(() => {
-    if (product && selectedSize && selectedColor) {
-      const variant = product.variants.find(
-        v => v.size === selectedSize && v.color === selectedColor
-      );
-      setSelectedVariant(variant || null);
-    }
-  }, [product, selectedSize, selectedColor]);
+  const [showSubmitReview, setShowSubmitReview] = useState(false);
   
   // Handle adding to cart
   const handleAddToCart = () => {
-    if (product && selectedVariant) {
-      addToCart({
-        product,
-        variant: selectedVariant,
-        quantity,
-        price: product.price
-      });
-      
-      toast({
-        title: "Added to cart",
-        description: `${product.name} (${selectedVariant.size}, ${selectedVariant.color}) x ${quantity} added to your cart.`,
-      });
+    if (!product || !selectedVariant) return;
+    
+    // Add item to cart
+    addItem(product, selectedVariant, quantity);
+  };
+  
+  // Handle quantity change
+  const increaseQuantity = () => {
+    if (selectedVariant && quantity < selectedVariant.stock) {
+      setQuantity(quantity + 1);
     } else {
       toast({
-        title: "Please select options",
-        description: "Select size and color before adding to cart.",
+        title: "Maximum stock reached",
+        description: `Only ${selectedVariant?.stock} items available`,
         variant: "destructive",
       });
     }
   };
   
-  // Handle quantity change
-  const handleQuantityChange = (change: number) => {
-    setQuantity(prev => {
-      const newValue = prev + change;
-      return newValue < 1 ? 1 : newValue;
+  const decreaseQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(quantity - 1);
+    }
+  };
+  
+  // Change selected image
+  const nextImage = () => {
+    if (product && selectedImage < product.images.length - 1) {
+      setSelectedImage(selectedImage + 1);
+    }
+  };
+  
+  const prevImage = () => {
+    if (selectedImage > 0) {
+      setSelectedImage(selectedImage - 1);
+    }
+  };
+  
+  // Callback for when a review is submitted
+  const handleReviewSubmitted = () => {
+    setShowSubmitReview(false);
+    toast({
+      title: "Review submitted",
+      description: "Thank you for your feedback!",
     });
   };
   
-  // Get available sizes and colors
-  const getAvailableSizes = () => {
-    if (!product) return [];
-    const sizes = new Set<string>();
-    product.variants.forEach(v => sizes.add(v.size));
-    return Array.from(sizes);
-  };
-  
-  const getAvailableColors = (size: string) => {
-    if (!product || !size) return [];
-    const colors = new Set<string>();
-    product.variants
-      .filter(v => v.size === size)
-      .forEach(v => colors.add(v.color));
-    return Array.from(colors);
-  };
-  
-  const getVariantByColorAndSize = (color: string, size: string) => {
-    if (!product) return null;
-    return product.variants.find(
-      v => v.color === color && v.size === size
-    );
-  };
-  
-  // If product not found
+  // If product is not loaded yet, show loading
   if (!product) {
-    return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <div className="bg-muted p-8 rounded-lg max-w-xl mx-auto">
-          <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
-          <p className="mb-6">
-            Sorry, we couldn't find the product you're looking for.
-          </p>
-          <Button asChild>
-            <Link to="/products">
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              Back to Products
-            </Link>
-          </Button>
-        </div>
-      </div>
-    );
+    return <div className="container mx-auto px-4 py-8">Loading...</div>;
   }
   
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 mb-20">
       <div className="flex justify-between items-center mb-6">
         <Button variant="ghost" asChild>
           <Link to="/products" className="flex items-center">
@@ -164,327 +114,466 @@ export default function ProductDetail() {
         <ThemeToggle />
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="space-y-4"
-        >
-          <div className="bg-muted aspect-square rounded-lg overflow-hidden">
-            <img
-              src={product.images[0]}
-              alt={product.name}
-              className="w-full h-full object-cover"
-            />
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+        {/* Product Images */}
+        <div className="space-y-4">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="relative aspect-square bg-muted rounded-lg overflow-hidden"
+          >
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={selectedImage}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                src={product.images[selectedImage]}
+                alt={product.name}
+                className="w-full h-full object-cover"
+              />
+            </AnimatePresence>
+            
+            {product.images.length > 1 && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-background/80 hover:bg-background/90 rounded-full"
+                  onClick={prevImage}
+                  disabled={selectedImage === 0}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-background/80 hover:bg-background/90 rounded-full"
+                  onClick={nextImage}
+                  disabled={selectedImage === product.images.length - 1}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+          </motion.div>
           
           {product.images.length > 1 && (
-            <div className="grid grid-cols-4 gap-2">
+            <div className="flex gap-2 overflow-auto py-2">
               {product.images.map((image, index) => (
-                <div 
-                  key={index} 
-                  className="aspect-square rounded-md overflow-hidden border cursor-pointer hover:border-primary transition-colors"
+                <motion.button
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className={`w-16 h-16 rounded-md overflow-hidden flex-shrink-0 border-2 ${
+                    selectedImage === index
+                      ? "border-primary"
+                      : "border-transparent hover:border-muted-foreground/30"
+                  }`}
+                  onClick={() => setSelectedImage(index)}
                 >
                   <img
                     src={image}
-                    alt={`${product.name} - View ${index + 1}`}
+                    alt={`${product.name} ${index + 1}`}
                     className="w-full h-full object-cover"
                   />
-                </div>
+                </motion.button>
               ))}
             </div>
           )}
-        </motion.div>
+        </div>
         
-        <motion.div
+        {/* Product Details */}
+        <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
           className="space-y-6"
         >
           <div>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-              <div>
-                <h1 className="text-3xl font-bold">{product.name}</h1>
-                <p className="text-muted-foreground capitalize">{product.category.replace('-', ' ')}</p>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <div className="flex">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
+              <motion.h1 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="text-3xl font-bold"
+              >
+                {product.name}
+              </motion.h1>
+              <div className="flex items-center">
+                <div className="flex items-center mr-2">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star
                       key={i}
                       className={`h-4 w-4 ${
                         i < Math.floor(product.rating)
                           ? "text-yellow-500 fill-yellow-500"
+                          : i < product.rating
+                          ? "text-yellow-500 fill-yellow-500 opacity-50"
                           : "text-muted-foreground"
                       }`}
                     />
                   ))}
                 </div>
-                <span className="text-sm text-muted-foreground">
-                  ({product.reviews})
-                </span>
+                <span className="text-sm text-muted-foreground">({product.reviews} reviews)</span>
               </div>
             </div>
             
-            <div className="mt-4 flex items-center gap-3">
-              <span className="text-2xl font-semibold">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="text-2xl font-bold">
                 ₹{(product.price / 100).toFixed(2)}
-              </span>
+              </div>
               {product.originalPrice && (
-                <span className="text-muted-foreground line-through">
+                <div className="text-muted-foreground line-through">
                   ₹{(product.originalPrice / 100).toFixed(2)}
-                </span>
+                </div>
               )}
               {product.originalPrice && (
-                <Badge className="bg-green-500">
-                  {Math.round(
-                    ((product.originalPrice - product.price) / product.originalPrice) * 100
-                  )}% OFF
+                <Badge variant="outline" className="ml-2 bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
+                  {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
                 </Badge>
               )}
+            </div>
+            
+            <p className="text-muted-foreground">{product.description}</p>
+            
+            <div className="mt-4 flex items-center space-x-1">
+              <Badge
+                variant="outline"
+                className={product.inStock ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800" : "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"}
+              >
+                {product.inStock ? "In Stock" : "Out of Stock"}
+              </Badge>
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                {product.category.replace("-", " ").charAt(0).toUpperCase() + product.category.replace("-", " ").slice(1)}
+              </Badge>
             </div>
           </div>
           
           <Separator />
           
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <Label htmlFor="size">Size</Label>
-                <Button
-                  variant="link"
-                  className="p-0 h-auto text-sm text-primary"
-                  onClick={() => setShowSizeChart(true)}
-                >
-                  Size Chart
-                </Button>
-              </div>
-              
+          {/* Size Selection */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-medium">Select Size</h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 px-2 text-xs"
+                onClick={() => setShowSizeChart(true)}
+              >
+                <Info className="h-3 w-3 mr-1" />
+                Size Guide
+              </Button>
+            </div>
+            
+            <RadioGroup
+              defaultValue={selectedVariant?.size}
+              onValueChange={(size) => {
+                const variant = product.variants.find(v => v.size === size && v.color === selectedVariant?.color);
+                if (variant) setSelectedVariant(variant);
+              }}
+            >
               <div className="flex flex-wrap gap-2">
-                {getAvailableSizes().map((size) => {
-                  const isAvailable = getAvailableColors(size).length > 0;
+                {Array.from(new Set(product.variants.map((v) => v.size))).map(
+                  (size) => {
+                    const isAvailable = product.variants.some(
+                      (v) => v.size === size && v.stock > 0 && v.color === selectedVariant?.color
+                    );
+                    
+                    return (
+                      <div key={size} className="relative">
+                        <RadioGroupItem
+                          value={size}
+                          id={`size-${size}`}
+                          className="peer sr-only"
+                          disabled={!isAvailable}
+                        />
+                        <Label
+                          htmlFor={`size-${size}`}
+                          className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-md border border-muted bg-transparent text-center text-sm font-medium ring-offset-background transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 peer-data-[state=checked]:text-primary peer-disabled:bg-muted/50 peer-disabled:text-muted-foreground/50"
+                        >
+                          {size}
+                        </Label>
+                      </div>
+                    );
+                  }
+                )}
+              </div>
+            </RadioGroup>
+          </div>
+          
+          {/* Color Selection */}
+          <div>
+            <h3 className="font-medium mb-2">Select Color</h3>
+            
+            <RadioGroup
+              defaultValue={selectedVariant?.color}
+              onValueChange={(color) => {
+                const variant = product.variants.find(v => v.color === color && v.size === selectedVariant?.size);
+                if (variant) setSelectedVariant(variant);
+              }}
+            >
+              <div className="flex flex-wrap gap-2">
+                {Array.from(
+                  new Set(
+                    product.variants
+                      .filter((v) => v.size === selectedVariant?.size)
+                      .map((v) => v.color)
+                  )
+                ).map((color) => {
+                  const variant = product.variants.find(
+                    (v) => v.color === color && v.size === selectedVariant?.size
+                  );
+                  const isAvailable = variant?.stock && variant.stock > 0;
+                  
                   return (
-                    <Button
-                      key={size}
-                      type="button"
-                      variant={selectedSize === size ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => {
-                        setSelectedSize(size);
-                        const availableColors = getAvailableColors(size);
-                        if (
-                          availableColors.length > 0 &&
-                          (!selectedColor || !availableColors.includes(selectedColor))
-                        ) {
-                          setSelectedColor(availableColors[0]);
-                        }
-                      }}
-                      disabled={!isAvailable}
-                      className={`${
-                        selectedSize === size
-                          ? ""
-                          : isAvailable
-                          ? "border-primary/30 hover:bg-primary/10"
-                          : "opacity-50"
-                      }`}
-                    >
-                      {size}
-                    </Button>
+                    <div key={color} className="relative">
+                      <RadioGroupItem
+                        value={color}
+                        id={`color-${color}`}
+                        className="peer sr-only"
+                        disabled={!isAvailable}
+                      />
+                      <Label
+                        htmlFor={`color-${color}`}
+                        className="flex h-10 cursor-pointer items-center justify-center rounded-md border border-muted bg-transparent px-3 text-center text-sm font-medium ring-offset-background transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 peer-data-[state=checked]:text-primary peer-disabled:bg-muted/50 peer-disabled:text-muted-foreground/50"
+                      >
+                        <span
+                          className="mr-1 inline-block h-4 w-4 rounded-full border"
+                          style={{
+                            backgroundColor: variant?.colorCode || "#000",
+                            borderColor: variant?.colorCode === "#FFFFFF" ? "#ddd" : variant?.colorCode,
+                          }}
+                        />
+                        {color}
+                      </Label>
+                    </div>
                   );
                 })}
               </div>
-            </div>
+            </RadioGroup>
+          </div>
+          
+          {/* Quantity */}
+          <div>
+            <h3 className="font-medium mb-2">Quantity</h3>
             
-            {selectedSize && (
-              <div className="space-y-2">
-                <Label htmlFor="color">Color</Label>
-                <div className="flex flex-wrap gap-3">
-                  {getAvailableColors(selectedSize).map((color) => {
-                    const variant = getVariantByColorAndSize(color, selectedSize);
-                    const isAvailable = variant && variant.stock > 0;
-                    
-                    return (
-                      <div key={color} className="flex flex-col items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedColor(color)}
-                          disabled={!isAvailable}
-                          className={`w-8 h-8 rounded-full border transition-all ${
-                            selectedColor === color
-                              ? "ring-2 ring-primary ring-offset-2"
-                              : !isAvailable
-                              ? "opacity-50 cursor-not-allowed"
-                              : "ring-1 ring-border hover:ring-2 hover:ring-primary/50"
-                          }`}
-                          style={{
-                            backgroundColor: variant?.colorCode || "#000000",
-                          }}
-                        />
-                        <span className="text-xs">{color}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-            
-            <div className="flex items-center gap-4">
-              <Label htmlFor="quantity">Quantity</Label>
-              <div className="flex items-center">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 rounded-r-none"
-                  onClick={() => handleQuantityChange(-1)}
-                  disabled={quantity <= 1}
-                >
-                  -
-                </Button>
-                <div className="h-8 px-4 flex items-center justify-center border-y">
-                  {quantity}
-                </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 rounded-l-none"
-                  onClick={() => handleQuantityChange(1)}
-                  disabled={
-                    selectedVariant ? quantity >= selectedVariant.stock : true
-                  }
-                >
-                  +
-                </Button>
-              </div>
-              
-              {selectedVariant && (
-                <span className="text-sm text-muted-foreground">
-                  {selectedVariant.stock} available
-                </span>
-              )}
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                className="flex-1"
-                size="lg"
-                onClick={handleAddToCart}
-                disabled={!selectedSize || !selectedColor || !selectedVariant}
-              >
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                Add to Cart
-              </Button>
-              
+            <div className="flex items-center">
               <Button
                 variant="outline"
-                size="lg"
-                className="flex-1 border-primary/30 hover:bg-primary/10"
+                size="icon"
+                className="h-10 w-10 rounded-r-none"
+                onClick={decreaseQuantity}
+                disabled={quantity <= 1}
               >
-                <Heart className="mr-2 h-4 w-4" />
-                Add to Wishlist
+                -
+              </Button>
+              <div className="h-10 w-12 flex items-center justify-center border-y">
+                {quantity}
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 rounded-l-none"
+                onClick={increaseQuantity}
+                disabled={!selectedVariant || quantity >= selectedVariant.stock}
+              >
+                +
+              </Button>
+              
+              <div className="ml-4 text-sm text-muted-foreground">
+                {selectedVariant ? (
+                  selectedVariant.stock > 0 ? (
+                    <span className="flex items-center">
+                      <CircleCheck className="h-4 w-4 text-green-600 mr-1" />
+                      {selectedVariant.stock} available
+                    </span>
+                  ) : (
+                    <span className="flex items-center">
+                      <CircleAlert className="h-4 w-4 text-red-600 mr-1" />
+                      Out of stock
+                    </span>
+                  )
+                ) : (
+                  <span>Select a variant</span>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button 
+              className="sm:flex-1"
+              size="lg"
+              onClick={handleAddToCart}
+              disabled={!selectedVariant || selectedVariant.stock === 0}
+            >
+              <ShoppingBag className="mr-2 h-5 w-5" />
+              Add to Cart
+            </Button>
+            
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-11 w-11"
+              >
+                <Heart className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-11 w-11"
+              >
+                <Share2 className="h-5 w-5" />
               </Button>
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4">
-            <Card className="bg-muted/50">
-              <CardContent className="p-3 flex items-center gap-2">
-                <Truck className="h-4 w-4 text-primary" />
-                <span className="text-sm">Free shipping above ₹599</span>
-              </CardContent>
-            </Card>
-            <Card className="bg-muted/50">
-              <CardContent className="p-3 flex items-center gap-2">
-                <Shield className="h-4 w-4 text-primary" />
-                <span className="text-sm">Money-back guarantee</span>
-              </CardContent>
-            </Card>
-            <Card className="bg-muted/50">
-              <CardContent className="p-3 flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary" />
-                <span className="text-sm">Delivery in 3-5 days</span>
-              </CardContent>
-            </Card>
+          {/* Shipping info */}
+          <div className="mt-6 space-y-3 bg-muted/30 p-4 rounded-lg">
+            <div className="flex items-start gap-3">
+              <Truck className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">Free Shipping</p>
+                <p className="text-sm text-muted-foreground">On orders over ₹599. Dispatched in 1-2 working days.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <RotateCcw className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">Easy Returns</p>
+                <p className="text-sm text-muted-foreground">30 day return policy. Return for a refund or exchange.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <Shield className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">Secure Checkout</p>
+                <p className="text-sm text-muted-foreground">Pay with confidence using secure payment methods.</p>
+              </div>
+            </div>
           </div>
         </motion.div>
       </div>
       
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
-        className="mt-12"
-      >
-        <Tabs defaultValue="description" onValueChange={setActiveTab} value={activeTab}>
-          <TabsList className="w-full md:w-auto grid grid-cols-3 md:flex">
-            <TabsTrigger value="description">Description</TabsTrigger>
-            <TabsTrigger value="details">Details & Care</TabsTrigger>
-            <TabsTrigger value="reviews">
-              Reviews ({product.reviews})
-            </TabsTrigger>
-          </TabsList>
+      {/* Product Tabs */}
+      <div className="my-12">
+        <Tabs defaultValue="details">
+          <TabList className="mb-8">
+            <Tab value="details">Product Details</Tab>
+            <Tab value="reviews">Reviews ({product.reviews})</Tab>
+          </TabList>
           
-          <TabsContent value="description" className="pt-6">
+          <TabPanel value="details">
             <div className="prose dark:prose-invert max-w-none">
-              <p>{product.description || "No description available."}</p>
+              <h3>Description</h3>
+              <p>{product.description}</p>
+              
+              <h3>Features</h3>
+              <ul>
+                <li>Premium quality material</li>
+                <li>Comfortable fit</li>
+                <li>Durable and long-lasting</li>
+                <li>Easy to care for</li>
+                <li>Stylish design</li>
+              </ul>
+              
+              <h3>Care Instructions</h3>
+              <ul>
+                <li>Machine wash cold</li>
+                <li>Do not bleach</li>
+                <li>Tumble dry low</li>
+                <li>Iron on low heat if needed</li>
+                <li>Do not dry clean</li>
+              </ul>
             </div>
-          </TabsContent>
+          </TabPanel>
           
-          <TabsContent value="details" className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <h3 className="text-lg font-medium mb-3">Product Details</h3>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex justify-between border-b pb-2">
-                    <span className="text-muted-foreground">Material</span>
-                    <span>100% Cotton</span>
-                  </li>
-                  <li className="flex justify-between border-b pb-2">
-                    <span className="text-muted-foreground">Pattern</span>
-                    <span>Solid</span>
-                  </li>
-                  <li className="flex justify-between border-b pb-2">
-                    <span className="text-muted-foreground">Fit</span>
-                    <span>Regular Fit</span>
-                  </li>
-                  <li className="flex justify-between border-b pb-2">
-                    <span className="text-muted-foreground">Neck</span>
-                    <span>Round Neck</span>
-                  </li>
-                  <li className="flex justify-between border-b pb-2">
-                    <span className="text-muted-foreground">Sleeve</span>
-                    <span>Short Sleeve</span>
-                  </li>
-                </ul>
+          <TabPanel value="reviews">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-bold">Customer Reviews</h3>
+                <Button onClick={() => setShowSubmitReview(true)}>Write a Review</Button>
               </div>
               
-              <div>
-                <h3 className="text-lg font-medium mb-3">Wash Care</h3>
-                <ul className="space-y-2 text-sm">
-                  <li>Machine wash cold</li>
-                  <li>Wash with similar colors</li>
-                  <li>Gentle cycle</li>
-                  <li>Do not bleach</li>
-                  <li>Tumble dry low</li>
-                  <li>Cool iron if needed</li>
-                </ul>
-              </div>
+              <Reviews 
+                productId={product.id}
+                rating={product.rating}
+                reviewCount={product.reviews}
+              />
             </div>
-          </TabsContent>
-          
-          <TabsContent value="reviews" className="pt-6">
-            <div className="space-y-8">
-              <Reviews productId={product.id} />
-              <Separator />
-              <ReviewForm productId={product.id} />
-            </div>
-          </TabsContent>
+          </TabPanel>
         </Tabs>
-      </motion.div>
+      </div>
       
-      <SizeChart open={showSizeChart} onOpenChange={setShowSizeChart} />
+      {/* Related Products */}
+      <div className="my-12">
+        <h2 className="text-2xl font-bold mb-6">You May Also Like</h2>
+        
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {products
+            .filter((p: Product) => p.category === product.category && p.id !== product.id)
+            .slice(0, 4)
+            .map((relatedProduct: Product) => (
+              <motion.div
+                key={relatedProduct.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                whileHover={{ y: -5 }}
+              >
+                <Link to={`/product/${relatedProduct.id}`}>
+                  <Card className="overflow-hidden h-full border-border/40 hover:border-border hover:shadow-md transition-all">
+                    <div className="aspect-square overflow-hidden relative group">
+                      <img
+                        src={relatedProduct.images[0]}
+                        alt={relatedProduct.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="secondary" size="sm" className="flex items-center">
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                      </div>
+                    </div>
+                    <CardContent className="p-3">
+                      <h3 className="font-medium truncate">{relatedProduct.name}</h3>
+                      <div className="flex justify-between items-center mt-1">
+                        <span className="font-bold">₹{(relatedProduct.price / 100).toFixed(2)}</span>
+                        <div className="flex items-center">
+                          <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                          <span className="text-xs ml-1">{relatedProduct.rating}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </motion.div>
+            ))}
+        </div>
+      </div>
+      
+      {/* Size Chart Dialog */}
+      <Dialog open={showSizeChart} onOpenChange={setShowSizeChart}>
+        <DialogContent className="max-w-2xl">
+          <SizeChart />
+        </DialogContent>
+      </Dialog>
+      
+      {/* Review Form Dialog */}
+      <Dialog open={showSubmitReview} onOpenChange={setShowSubmitReview}>
+        <DialogContent className="max-w-lg">
+          <ReviewForm 
+            productId={product.id}
+            onReviewSubmitted={handleReviewSubmitted}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

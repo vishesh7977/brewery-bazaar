@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { products as initialProducts, categories } from "@/lib/data";
 import { Edit, Trash2, Plus, Search, Filter, Package, Users, ShoppingCart, Save, Eye, X, AlertTriangle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
@@ -1009,9 +1008,9 @@ export default function Admin() {
                 </div>
                 <div>
                   <h3 className="text-sm font-medium mb-1">Shipping Address</h3>
-                  <p className="text-sm">{viewingOrder.address.street}</p>
-                  <p className="text-sm">{viewingOrder.address.city}, {viewingOrder.address.state} {viewingOrder.address.zip}</p>
-                  <p className="text-sm">{viewingOrder.address.country}</p>
+                  <p className="text-sm">{viewingOrder.shippingAddress.street}</p>
+                  <p className="text-sm">{viewingOrder.shippingAddress.city}, {viewingOrder.shippingAddress.state} {viewingOrder.shippingAddress.zipCode}</p>
+                  <p className="text-sm">{viewingOrder.shippingAddress.country}</p>
                 </div>
               </div>
               
@@ -1058,12 +1057,12 @@ export default function Admin() {
                               <div className="flex items-center gap-2">
                                 <div className="h-8 w-8 rounded-md bg-secondary overflow-hidden">
                                   <img
-                                    src={item.image}
-                                    alt={item.name}
+                                    src={item.product.images[0]}
+                                    alt={item.product.name}
                                     className="h-full w-full object-cover"
                                   />
                                 </div>
-                                <span>{item.name}</span>
+                                <span>{item.product.name}</span>
                               </div>
                             </td>
                             <td className="p-2">
