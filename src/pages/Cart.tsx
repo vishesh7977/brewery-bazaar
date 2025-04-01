@@ -1,790 +1,498 @@
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, ArrowLeft, ShoppingCart, Minus, Plus, Check } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import { motion, AnimatePresence } from "framer-motion";
-import { useCart } from "@/contexts/CartContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Customer, Address } from "@/types";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { 
+  ChevronLeft, 
+  Trash2, 
+  Plus, 
+  Minus, 
+  CreditCard, 
+  ShoppingBag, 
+  Truck, 
+  ArrowRight,
+  ShieldCheck
+} from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { Order } from "@/types";
+import { motion } from "framer-motion";
 
-export default function CartPage() {
+export default function Cart() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const {
-    cart,
-    removeItem,
-    updateQuantity,
-    shippingAddress,
-    billingAddress,
-    setShippingAddress,
-    setBillingAddress,
-    placeOrder
-  } = useCart();
+  const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
+  const [orders, setOrders] = useLocalStorage<Order[]>("orders", []);
   
-  // Checkout state
-  const [step, setStep] = useState<"cart" | "shipping" | "payment">("cart");
-  const [useShippingAsBilling, setUseShippingAsBilling] = useState(true);
-  const [paymentMethod, setPaymentMethod] = useState("razorpay");
-  
-  // Shipping information
-  const [shippingInfo, setShippingInfo] = useState<Address>(
-    shippingAddress || {
-      street: "",
-      city: "",
-      state: "",
-      zipCode: "",
-      country: "India"
-    }
-  );
-  
-  // Billing information
-  const [billingInfo, setBillingInfo] = useState<Address>(
-    billingAddress || {
-      street: "",
-      city: "",
-      state: "",
-      zipCode: "",
-      country: "India"
-    }
-  );
-  
-  // Customer information
-  const [customerInfo, setCustomerInfo] = useState<Customer>({
-    id: "",
-    name: localStorage.getItem("userName") || "",
-    email: localStorage.getItem("userEmail") || "",
-    phone: ""
+  // Shipping form state
+  const [shippingInfo, setShippingInfo] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    address: "",
+    address2: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    country: "India",
+    notes: ""
   });
   
-  // Format price for display
-  const formatPrice = (price: number) => {
-    return `₹${(price / 100).toFixed(2)}`;
+  // Handle form input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setShippingInfo((prev) => ({
+      ...prev,
+      [name]: value
+    }));
   };
   
-  // Handle shipping form fields
-  const handleShippingChange = (field: keyof Address, value: string) => {
-    const updated = { ...shippingInfo, [field]: value };
-    setShippingInfo(updated);
-    setShippingAddress(updated);
+  // Calculate cart totals
+  const subtotal = cart.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+  
+  // Free shipping for orders above ₹599
+  const shippingCost = subtotal >= 59900 ? 0 : 4999;
+  const total = subtotal + shippingCost;
+  
+  // Handle checkout
+  const handleCheckout = () => {
+    // Form validation
+    const requiredFields = ["fullName", "email", "phone", "address", "city", "state", "zipCode"];
+    const missingFields = requiredFields.filter(field => !shippingInfo[field as keyof typeof shippingInfo]);
     
-    if (useShippingAsBilling) {
-      setBillingInfo(updated);
-      setBillingAddress(updated);
-    }
-  };
-  
-  // Handle billing form fields
-  const handleBillingChange = (field: keyof Address, value: string) => {
-    const updated = { ...billingInfo, [field]: value };
-    setBillingInfo(updated);
-    setBillingAddress(updated);
-  };
-  
-  // Handle customer form fields
-  const handleCustomerChange = (field: keyof Customer, value: string) => {
-    setCustomerInfo({ ...customerInfo, [field]: value });
-  };
-  
-  // Handle shipping form submission
-  const handleShippingSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!shippingInfo.street || !shippingInfo.city || !shippingInfo.state || !shippingInfo.zipCode) {
+    if (missingFields.length > 0) {
       toast({
         title: "Missing information",
-        description: "Please fill in all required shipping fields",
-        variant: "destructive"
+        description: "Please fill in all required fields.",
+        variant: "destructive",
       });
       return;
     }
     
-    setShippingAddress(shippingInfo);
-    
-    if (useShippingAsBilling) {
-      setBillingAddress(shippingInfo);
-    }
-    
-    setStep("payment");
-  };
-  
-  // Handle payment form submission
-  const handlePaymentSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!customerInfo.name || !customerInfo.email || !customerInfo.phone) {
+    if (!/^\d{10}$/.test(shippingInfo.phone)) {
       toast({
-        title: "Missing information",
-        description: "Please fill in all customer information",
-        variant: "destructive"
+        title: "Invalid phone number",
+        description: "Please enter a valid 10-digit phone number.",
+        variant: "destructive",
       });
       return;
     }
     
-    // Save customer info to localStorage for future use
-    localStorage.setItem("userName", customerInfo.name);
-    localStorage.setItem("userEmail", customerInfo.email);
+    // Create order object
+    const orderId = `ORD-${Date.now().toString().slice(-8)}`;
+    const newOrder: Order = {
+      id: orderId,
+      date: new Date().toISOString(),
+      customer: {
+        name: shippingInfo.fullName,
+        email: shippingInfo.email,
+        phone: shippingInfo.phone,
+      },
+      shippingAddress: {
+        street: shippingInfo.address,
+        street2: shippingInfo.address2,
+        city: shippingInfo.city,
+        state: shippingInfo.state,
+        zipCode: shippingInfo.zipCode,
+        country: shippingInfo.country,
+      },
+      items: cart.map(item => ({
+        product: item.product,
+        variant: item.variant,
+        quantity: item.quantity,
+        price: item.price
+      })),
+      subtotal,
+      shipping: shippingCost,
+      total,
+      status: "Processing",
+      paymentMethod: "Razorpay",
+      notes: shippingInfo.notes,
+    };
     
-    // Place the order
-    const orderId = placeOrder(customerInfo, paymentMethod);
+    // Save order to localStorage
+    setOrders([...orders, newOrder]);
     
-    // Redirect to thank you page (this would normally go to payment gateway)
-    navigate("/");
-    
+    // Display success message and redirect
     toast({
-      title: "Order placed successfully",
-      description: `Thank you for your order #${orderId}! We'll process it right away.`,
+      title: "Order placed successfully!",
+      description: `Your order #${orderId} has been confirmed. Thank you for shopping with us!`
+    });
+    
+    // Simulate payment processing with Razorpay
+    simulateRazorpayPayment(newOrder);
+    
+    // Clear cart
+    clearCart();
+    
+    // Redirect to home page
+    navigate("/");
+  };
+  
+  // Simulate Razorpay payment (in a real app, this would be implemented properly)
+  const simulateRazorpayPayment = (order: Order) => {
+    console.log("Processing payment via Razorpay for order:", order);
+    
+    // In a real implementation, you would integrate with the Razorpay API here
+    // This is just a placeholder to show how the flow would work
+    toast({
+      title: "Razorpay Payment",
+      description: "Payment of ₹" + (order.total/100).toFixed(2) + " processed successfully via Razorpay!"
     });
   };
   
-  // Calculate shipping and total
-  const subtotal = cart.total;
-  const shipping = subtotal >= 99900 ? 0 : 10000; // Free shipping for orders above ₹999
-  const total = subtotal + shipping;
-  
   // Empty cart view
-  if (cart.items.length === 0) {
+  if (cart.length === 0) {
     return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="max-w-md mx-auto"
-        >
-          <ShoppingCart className="mx-auto h-16 w-16 text-muted-foreground mb-6" />
-          <h1 className="text-2xl font-bold mb-4">Your cart is empty</h1>
-          <p className="text-muted-foreground mb-8">
-            Looks like you haven't added anything to your cart yet.
-          </p>
-          <Button asChild size="lg">
-            <Link to="/products">Start Shopping</Link>
+      <div className="container mx-auto px-4 py-16">
+        <div className="flex justify-between items-center mb-8">
+          <Button variant="ghost" asChild>
+            <Link to="/products" className="flex items-center">
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Continue Shopping
+            </Link>
           </Button>
-        </motion.div>
+          <ThemeToggle />
+        </div>
+        
+        <div className="max-w-md mx-auto text-center py-16">
+          <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Your cart is empty</h1>
+          <p className="text-muted-foreground mb-6">
+            Looks like you haven't added any products to your cart yet.
+          </p>
+          <Button asChild>
+            <Link to="/products">Browse Products</Link>
+          </Button>
+        </div>
       </div>
     );
   }
   
-  // Shopping Cart Step
-  if (step === "cart") {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate(-1)}
-          className="mb-6 -ml-3"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Continue Shopping
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-8">
+        <Button variant="ghost" asChild>
+          <Link to="/products" className="flex items-center">
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Continue Shopping
+          </Link>
         </Button>
-        
-        <h1 className="text-3xl font-bold mb-8">Your Cart</h1>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Cart Items */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Header (desktop only) */}
-            <div className="hidden md:grid grid-cols-5 gap-4 py-2 border-b text-sm font-medium text-muted-foreground">
-              <div className="col-span-2">Product</div>
-              <div className="text-center">Price</div>
-              <div className="text-center">Quantity</div>
-              <div className="text-right">Total</div>
-            </div>
-            
-            {/* Cart items */}
-            <AnimatePresence>
-              {cart.items.map((item, index) => (
-                <motion.div
-                  key={`${item.productId}-${item.variantId}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, height: 0, overflow: "hidden" }}
-                  transition={{ duration: 0.3, delay: index * 0.1 }}
-                  className="border rounded-md p-4 md:p-0 md:border-none md:grid md:grid-cols-5 md:gap-4 md:items-center"
-                >
-                  {/* Product info */}
-                  <div className="md:col-span-2 flex gap-4 items-center mb-4 md:mb-0 md:py-4">
-                    <motion.div 
-                      whileHover={{ scale: 1.05 }}
-                      className="h-20 w-20 bg-secondary rounded-md overflow-hidden"
-                    >
-                      <img
-                        src={item.product.images[0]}
-                        alt={item.product.name}
-                        className="h-full w-full object-cover"
-                      />
-                    </motion.div>
-                    <div>
-                      <Link
-                        to={`/product/${item.productId}`}
-                        className="font-medium hover:underline line-clamp-1"
-                      >
-                        {item.product.name}
-                      </Link>
-                      <div className="text-sm text-muted-foreground mt-1">
-                        {item.selectedVariant.size} / {item.selectedVariant.color}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeItem(item.productId, item.variantId)}
-                        className="text-destructive hover:text-destructive p-0 h-auto text-xs mt-1 md:hidden"
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  {/* Price */}
-                  <div className="md:text-center flex justify-between md:block">
-                    <div className="md:hidden text-sm text-muted-foreground">
-                      Price
-                    </div>
-                    <div>{formatPrice(item.product.price)}</div>
-                  </div>
-                  
-                  {/* Quantity */}
-                  <div className="md:text-center mt-2 md:mt-0 flex justify-between md:block items-center">
-                    <div className="md:hidden text-sm text-muted-foreground">
-                      Quantity
-                    </div>
-                    <div className="flex items-center">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => updateQuantity(item.productId, item.variantId, item.quantity - 1)}
-                        disabled={item.quantity <= 1}
-                        className="h-8 w-8"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="w-8 text-center">{item.quantity}</span>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => updateQuantity(item.productId, item.variantId, item.quantity + 1)}
-                        disabled={item.quantity >= item.selectedVariant.stock}
-                        className="h-8 w-8"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  {/* Total */}
-                  <div className="md:text-right mt-2 md:mt-0 flex justify-between md:block items-center">
-                    <div className="md:hidden text-sm text-muted-foreground">
-                      Total
-                    </div>
-                    <div className="font-medium">
-                      {formatPrice(item.product.price * item.quantity)}
-                    </div>
-                  </div>
-                  
-                  {/* Remove (desktop) */}
-                  <div className="hidden md:flex md:justify-end">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeItem(item.productId, item.variantId)}
-                      aria-label="Remove item"
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-          
-          {/* Order Summary */}
+        <ThemeToggle />
+      </div>
+      
+      <motion.h1 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="text-3xl font-bold mb-8 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent"
+      >
+        Your Shopping Cart
+      </motion.h1>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="lg:col-span-1"
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="bg-card border border-border/50 rounded-lg overflow-hidden"
           >
-            <div className="bg-secondary/30 p-6 rounded-lg border border-border/50 backdrop-blur-sm">
-              <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-              
-              <div className="space-y-2 border-b pb-4 mb-4">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span>{formatPrice(subtotal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Shipping</span>
-                  <span>{subtotal >= 99900 ? 'Free' : formatPrice(shipping)}</span>
-                </div>
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4">Cart Items ({cart.length})</h2>
+              <div className="space-y-6">
+                {cart.map((item, index) => (
+                  <motion.div 
+                    key={`${item.product.id}-${item.variant.id}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.1 * index }}
+                    className="flex gap-4 pb-6 border-b last:border-0 last:pb-0"
+                  >
+                    <div className="h-24 w-24 bg-muted rounded-md overflow-hidden flex-shrink-0">
+                      <img
+                        src={item.product.images[0]}
+                        alt={item.product.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex flex-col sm:flex-row sm:justify-between">
+                        <div>
+                          <h3 className="font-medium">{item.product.name}</h3>
+                          <div className="text-sm text-muted-foreground mb-2">
+                            {item.variant.size} • {item.variant.color}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium">
+                            ₹{(item.price / 100).toFixed(2)}
+                          </div>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            ₹{((item.price * item.quantity) / 100).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 rounded-r-none"
+                            onClick={() => updateQuantity(item, item.quantity - 1)}
+                            disabled={item.quantity <= 1}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <div className="h-8 px-4 flex items-center justify-center border-y">
+                            {item.quantity}
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 rounded-l-none"
+                            onClick={() => updateQuantity(item, item.quantity + 1)}
+                            disabled={item.quantity >= item.variant.stock}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={() => removeFromCart(item)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
-              
-              <div className="flex justify-between font-semibold text-lg mb-6">
-                <span>Total</span>
-                <span>{formatPrice(total)}</span>
-              </div>
-              
-              <Button
-                className="w-full bg-primary hover:bg-primary/90"
-                size="lg"
-                onClick={() => setStep("shipping")}
-              >
-                Proceed to Checkout
-              </Button>
-              
-              <div className="mt-4 text-center text-sm text-muted-foreground">
-                <p>Free shipping on all orders above ₹999</p>
-                <p className="mt-2">Secure payment via Razorpay</p>
+            </div>
+          </motion.div>
+          
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="mt-8 bg-card border border-border/50 rounded-lg overflow-hidden"
+          >
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4">Shipping Information</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name<span className="text-destructive">*</span></Label>
+                  <Input
+                    id="fullName"
+                    name="fullName"
+                    value={shippingInfo.fullName}
+                    onChange={handleInputChange}
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address<span className="text-destructive">*</span></Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={shippingInfo.email}
+                    onChange={handleInputChange}
+                    placeholder="your@email.com"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number<span className="text-destructive">*</span></Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    value={shippingInfo.phone}
+                    onChange={handleInputChange}
+                    placeholder="10-digit mobile number"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country<span className="text-destructive">*</span></Label>
+                  <Input
+                    id="country"
+                    name="country"
+                    value={shippingInfo.country}
+                    onChange={handleInputChange}
+                    placeholder="Country"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="address">Address Line 1<span className="text-destructive">*</span></Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    value={shippingInfo.address}
+                    onChange={handleInputChange}
+                    placeholder="Street address, P.O. box, etc."
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="address2">Address Line 2 (optional)</Label>
+                  <Input
+                    id="address2"
+                    name="address2"
+                    value={shippingInfo.address2}
+                    onChange={handleInputChange}
+                    placeholder="Apartment, suite, unit, building, floor, etc."
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="city">City<span className="text-destructive">*</span></Label>
+                  <Input
+                    id="city"
+                    name="city"
+                    value={shippingInfo.city}
+                    onChange={handleInputChange}
+                    placeholder="City"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="state">State<span className="text-destructive">*</span></Label>
+                  <Input
+                    id="state"
+                    name="state"
+                    value={shippingInfo.state}
+                    onChange={handleInputChange}
+                    placeholder="State"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="zipCode">PIN Code<span className="text-destructive">*</span></Label>
+                  <Input
+                    id="zipCode"
+                    name="zipCode"
+                    value={shippingInfo.zipCode}
+                    onChange={handleInputChange}
+                    placeholder="PIN Code"
+                    required
+                  />
+                </div>
+                
+                <div className="md:col-span-2 space-y-2">
+                  <Label htmlFor="notes">Order Notes (optional)</Label>
+                  <Textarea
+                    id="notes"
+                    name="notes"
+                    value={shippingInfo.notes}
+                    onChange={handleInputChange}
+                    placeholder="Special instructions for delivery, etc."
+                    rows={3}
+                  />
+                </div>
               </div>
             </div>
           </motion.div>
         </div>
-      </div>
-    );
-  }
-  
-  // Shipping Step
-  if (step === "shipping") {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <Button
-              variant="ghost"
-              onClick={() => setStep("cart")}
-              className="-ml-3"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Cart
-            </Button>
-            
-            <div className="flex items-center gap-2 text-sm">
-              <div className="flex items-center">
-                <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs">1</div>
-                <span className="ml-2">Cart</span>
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <Card className="sticky top-6 border-border/50">
+            <CardHeader>
+              <CardTitle>Order Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span>₹{(subtotal / 100).toFixed(2)}</span>
               </div>
-              <div className="w-8 h-0.5 bg-primary"></div>
-              <div className="flex items-center">
-                <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs">2</div>
-                <span className="ml-2 font-medium">Shipping</span>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Shipping</span>
+                <span>
+                  {shippingCost === 0 
+                    ? <span className="text-green-600 dark:text-green-500">Free</span> 
+                    : `₹${(shippingCost / 100).toFixed(2)}`}
+                </span>
               </div>
-              <div className="w-8 h-0.5 bg-muted"></div>
-              <div className="flex items-center text-muted-foreground">
-                <div className="w-6 h-6 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-xs">3</div>
-                <span className="ml-2">Payment</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <h1 className="text-2xl font-bold mb-6">Shipping Information</h1>
               
-              <form onSubmit={handleShippingSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="shipping-street">Street Address</Label>
-                  <Input
-                    id="shipping-street"
-                    value={shippingInfo.street}
-                    onChange={(e) => handleShippingChange("street", e.target.value)}
-                    required
-                  />
+              {shippingCost > 0 && (
+                <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                  Add ₹{((59900 - subtotal) / 100).toFixed(2)} more for free shipping
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="shipping-city">City</Label>
-                    <Input
-                      id="shipping-city"
-                      value={shippingInfo.city}
-                      onChange={(e) => handleShippingChange("city", e.target.value)}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="shipping-state">State</Label>
-                    <Input
-                      id="shipping-state"
-                      value={shippingInfo.state}
-                      onChange={(e) => handleShippingChange("state", e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="shipping-zipcode">Zip Code</Label>
-                    <Input
-                      id="shipping-zipcode"
-                      value={shippingInfo.zipCode}
-                      onChange={(e) => handleShippingChange("zipCode", e.target.value)}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="shipping-country">Country</Label>
-                    <Input
-                      id="shipping-country"
-                      value={shippingInfo.country}
-                      onChange={(e) => handleShippingChange("country", e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2 my-6">
-                  <input
-                    type="checkbox"
-                    id="use-shipping-as-billing"
-                    checked={useShippingAsBilling}
-                    onChange={(e) => setUseShippingAsBilling(e.target.checked)}
-                    className="rounded border-border h-4 w-4"
-                  />
-                  <Label htmlFor="use-shipping-as-billing" className="text-sm font-normal">
-                    Use shipping address as billing address
-                  </Label>
-                </div>
-                
-                {!useShippingAsBilling && (
-                  <div className="mt-6 pt-6 border-t">
-                    <h2 className="text-lg font-bold mb-4">Billing Information</h2>
-                    
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="billing-street">Street Address</Label>
-                        <Input
-                          id="billing-street"
-                          value={billingInfo.street}
-                          onChange={(e) => handleBillingChange("street", e.target.value)}
-                          required
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="billing-city">City</Label>
-                          <Input
-                            id="billing-city"
-                            value={billingInfo.city}
-                            onChange={(e) => handleBillingChange("city", e.target.value)}
-                            required
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="billing-state">State</Label>
-                          <Input
-                            id="billing-state"
-                            value={billingInfo.state}
-                            onChange={(e) => handleBillingChange("state", e.target.value)}
-                            required
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="billing-zipcode">Zip Code</Label>
-                          <Input
-                            id="billing-zipcode"
-                            value={billingInfo.zipCode}
-                            onChange={(e) => handleBillingChange("zipCode", e.target.value)}
-                            required
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="billing-country">Country</Label>
-                          <Input
-                            id="billing-country"
-                            value={billingInfo.country}
-                            onChange={(e) => handleBillingChange("country", e.target.value)}
-                            required
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="flex justify-end mt-8">
-                  <Button type="submit" size="lg">
-                    Continue to Payment
-                  </Button>
-                </div>
-              </form>
-            </div>
-            
-            <div>
-              <div className="bg-muted/20 p-6 rounded-lg">
-                <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
-                
-                <Accordion type="single" collapsible defaultValue="items">
-                  <AccordionItem value="items">
-                    <AccordionTrigger className="text-sm">
-                      {cart.items.length} item{cart.items.length !== 1 ? 's' : ''} in cart
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-4 mt-2">
-                        {cart.items.map((item) => (
-                          <div key={`${item.productId}-${item.variantId}`} className="flex gap-3">
-                            <div className="h-16 w-16 bg-secondary rounded-md overflow-hidden flex-shrink-0">
-                              <img
-                                src={item.product.images[0]}
-                                alt={item.product.name}
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <div className="font-medium line-clamp-1">{item.product.name}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {item.selectedVariant.size} / {item.selectedVariant.color}
-                              </div>
-                              <div className="flex justify-between mt-1 text-sm">
-                                <span>{item.quantity} × {formatPrice(item.product.price)}</span>
-                                <span className="font-medium">{formatPrice(item.product.price * item.quantity)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-                
-                <Separator className="my-4" />
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span>{formatPrice(subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Shipping</span>
-                    <span>{subtotal >= 99900 ? 'Free' : formatPrice(shipping)}</span>
-                  </div>
-                </div>
-                
-                <Separator className="my-4" />
-                
-                <div className="flex justify-between font-semibold">
-                  <span>Total</span>
-                  <span>{formatPrice(total)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  
-  // Payment Step
-  if (step === "payment") {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <Button
-              variant="ghost"
-              onClick={() => setStep("shipping")}
-              className="-ml-3"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Shipping
-            </Button>
-            
-            <div className="flex items-center gap-2 text-sm">
-              <div className="flex items-center">
-                <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs">1</div>
-                <span className="ml-2">Cart</span>
-              </div>
-              <div className="w-8 h-0.5 bg-primary"></div>
-              <div className="flex items-center">
-                <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs">2</div>
-                <span className="ml-2">Shipping</span>
-              </div>
-              <div className="w-8 h-0.5 bg-primary"></div>
-              <div className="flex items-center">
-                <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs">3</div>
-                <span className="ml-2 font-medium">Payment</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <h1 className="text-2xl font-bold mb-6">Payment Method</h1>
+              )}
               
-              <form onSubmit={handlePaymentSubmit} className="space-y-4">
-                <div className="mb-8">
-                  <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                    <div className="border rounded-md p-4 flex items-center space-x-3 cursor-pointer hover:bg-muted/30 transition-colors">
-                      <RadioGroupItem value="razorpay" id="r1" />
-                      <Label htmlFor="r1" className="flex-1 cursor-pointer">
-                        <div className="flex items-center justify-between">
-                          <span>Razorpay</span>
-                          <img src="https://cdn.razorpay.com/logo.svg" alt="Razorpay" className="h-6" />
-                        </div>
-                      </Label>
-                    </div>
-                    
-                    <div className="border rounded-md p-4 flex items-center space-x-3 cursor-pointer hover:bg-muted/30 transition-colors">
-                      <RadioGroupItem value="cod" id="r2" />
-                      <Label htmlFor="r2" className="flex-1 cursor-pointer">
-                        Cash on Delivery
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-                
-                <h2 className="text-lg font-bold mb-4">Contact Information</h2>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="customer-name">Full Name</Label>
-                  <Input
-                    id="customer-name"
-                    value={customerInfo.name}
-                    onChange={(e) => handleCustomerChange("name", e.target.value)}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="customer-email">Email Address</Label>
-                  <Input
-                    id="customer-email"
-                    type="email"
-                    value={customerInfo.email}
-                    onChange={(e) => handleCustomerChange("email", e.target.value)}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="customer-phone">Phone Number</Label>
-                  <Input
-                    id="customer-phone"
-                    value={customerInfo.phone}
-                    onChange={(e) => handleCustomerChange("phone", e.target.value)}
-                    required
-                  />
-                </div>
-                
-                <div className="flex justify-end mt-8">
-                  <Button type="submit" size="lg" className="bg-primary hover:bg-primary/90">
-                    <Check className="mr-2 h-4 w-4" />
-                    Complete Order
-                  </Button>
-                </div>
-              </form>
-            </div>
-            
-            <div>
-              <div className="bg-muted/20 p-6 rounded-lg">
-                <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
-                
-                <Accordion type="single" collapsible defaultValue="items">
-                  <AccordionItem value="items">
-                    <AccordionTrigger className="text-sm">
-                      {cart.items.length} item{cart.items.length !== 1 ? 's' : ''} in cart
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-4 mt-2">
-                        {cart.items.map((item) => (
-                          <div key={`${item.productId}-${item.variantId}`} className="flex gap-3">
-                            <div className="h-16 w-16 bg-secondary rounded-md overflow-hidden flex-shrink-0">
-                              <img
-                                src={item.product.images[0]}
-                                alt={item.product.name}
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <div className="font-medium line-clamp-1">{item.product.name}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {item.selectedVariant.size} / {item.selectedVariant.color}
-                              </div>
-                              <div className="flex justify-between mt-1 text-sm">
-                                <span>{item.quantity} × {formatPrice(item.product.price)}</span>
-                                <span className="font-medium">{formatPrice(item.product.price * item.quantity)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                  
-                  <AccordionItem value="shipping">
-                    <AccordionTrigger className="text-sm">
-                      Shipping Address
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="text-sm">
-                        <p>{shippingInfo.street}</p>
-                        <p>{shippingInfo.city}, {shippingInfo.state} {shippingInfo.zipCode}</p>
-                        <p>{shippingInfo.country}</p>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                  
-                  {!useShippingAsBilling && (
-                    <AccordionItem value="billing">
-                      <AccordionTrigger className="text-sm">
-                        Billing Address
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="text-sm">
-                          <p>{billingInfo.street}</p>
-                          <p>{billingInfo.city}, {billingInfo.state} {billingInfo.zipCode}</p>
-                          <p>{billingInfo.country}</p>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  )}
-                </Accordion>
-                
-                <Separator className="my-4" />
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span>{formatPrice(subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Shipping</span>
-                    <span>{subtotal >= 99900 ? 'Free' : formatPrice(shipping)}</span>
+              <Separator />
+              
+              <div className="flex justify-between items-center font-medium">
+                <span>Total</span>
+                <span className="text-lg">₹{(total / 100).toFixed(2)}</span>
+              </div>
+              
+              <div className="bg-muted/50 p-3 rounded-md text-sm space-y-2">
+                <div className="flex items-start gap-2">
+                  <Truck className="h-4 w-4 mt-0.5 text-primary" />
+                  <div>
+                    <p>Free shipping on orders above ₹599</p>
+                    <p className="text-xs text-muted-foreground">Delivery in 3-5 business days</p>
                   </div>
                 </div>
-                
-                <Separator className="my-4" />
-                
-                <div className="flex justify-between font-semibold">
-                  <span>Total</span>
-                  <span>{formatPrice(total)}</span>
+                <div className="flex items-start gap-2">
+                  <ShieldCheck className="h-4 w-4 mt-0.5 text-primary" />
+                  <div>
+                    <p>Secure checkout</p>
+                    <p className="text-xs text-muted-foreground">Powered by Razorpay</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
+            </CardContent>
+            <CardFooter className="flex flex-col gap-3">
+              <Button 
+                className="w-full" 
+                size="lg"
+                onClick={handleCheckout}
+              >
+                <CreditCard className="mr-2 h-4 w-4" />
+                Proceed to Payment
+              </Button>
+              <div className="flex items-center gap-2 text-xs text-center justify-center text-muted-foreground">
+                <img 
+                  src="https://upload.wikimedia.org/wikipedia/en/c/cf/Razorpay_logo.svg" 
+                  alt="Razorpay" 
+                  className="h-4" 
+                />
+                <span>Secure payment via Razorpay</span>
+              </div>
+            </CardFooter>
+          </Card>
+        </motion.div>
       </div>
-    );
-  }
-  
-  return null;
+    </div>
+  );
 }
