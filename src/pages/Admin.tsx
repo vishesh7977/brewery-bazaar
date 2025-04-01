@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +19,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 
 export default function Admin() {
+  
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("products");
   const [searchTerm, setSearchTerm] = useState("");
@@ -57,6 +57,8 @@ export default function Admin() {
     reviews: 0,
     inStock: true
   });
+  
+  
   
   // Show login message with demo credentials
   useEffect(() => {
@@ -213,9 +215,10 @@ export default function Admin() {
     { name: "Blue", code: "#0000FF" },
     { name: "Yellow", code: "#FFFF00" }
   ];
-  
+
   return (
     <div className="container mx-auto px-4 py-8">
+      
       <motion.h1 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -325,12 +328,15 @@ export default function Admin() {
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
-                  <Select value={filterCategory || ""} onValueChange={(value) => setFilterCategory(value || null)}>
+                  <Select 
+                    value={filterCategory || "all"} 
+                    onValueChange={(value) => setFilterCategory(value === "all" ? null : value)}
+                  >
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="All Categories" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Categories</SelectItem>
+                      <SelectItem value="all">All Categories</SelectItem>
                       {categories.map((category) => (
                         <SelectItem key={category.slug} value={category.slug}>
                           {category.name}
@@ -346,6 +352,7 @@ export default function Admin() {
               </div>
             </CardHeader>
             <CardContent>
+              
               <div className="rounded-md border">
                 <div className="overflow-auto max-h-[500px]">
                   <table className="w-full">
@@ -483,7 +490,7 @@ export default function Admin() {
                       className="pl-8 w-full md:w-[200px] lg:w-[300px]"
                     />
                   </div>
-                  <Select>
+                  <Select defaultValue="all">
                     <SelectTrigger className="w-[150px]">
                       <SelectValue placeholder="All Statuses" />
                     </SelectTrigger>
@@ -499,6 +506,7 @@ export default function Admin() {
               </div>
             </CardHeader>
             <CardContent>
+              
               <div className="rounded-md border">
                 <div className="overflow-auto max-h-[500px]">
                   <table className="w-full">
@@ -575,6 +583,7 @@ export default function Admin() {
               </div>
             </CardHeader>
             <CardContent>
+              
               <div className="rounded-md border">
                 <div className="overflow-auto max-h-[500px]">
                   <table className="w-full">
@@ -650,7 +659,7 @@ export default function Admin() {
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Select 
-                  value={formProduct.category || ""} 
+                  value={formProduct.category || "t-shirts"} 
                   onValueChange={(value) => setFormProduct({ ...formProduct, category: value })}
                 >
                   <SelectTrigger>
@@ -853,177 +862,3 @@ export default function Admin() {
                           <Input
                             id={`stock-${variant.id}`}
                             type="number"
-                            min="0"
-                            value={variant.stock}
-                            onChange={(e) => handleVariantChange(variant.id, "stock", parseInt(e.target.value))}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6 border rounded-md">
-                  <p className="text-muted-foreground">No variants added yet</p>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowProductForm(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveProduct}>
-              <Save className="mr-2 h-4 w-4" />
-              Save Product
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Order View Dialog */}
-      <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>
-        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-          {viewingOrder && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex justify-between items-center">
-                  <span>Order #{viewingOrder.id}</span>
-                  <StatusBadge status={viewingOrder.status} />
-                </DialogTitle>
-                <DialogDescription>
-                  Placed on {new Date(viewingOrder.date).toLocaleDateString()} by {viewingOrder.customer.name}
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="font-medium mb-2">Customer Information</h3>
-                    <div className="bg-muted/30 p-3 rounded-md">
-                      <p><strong>Name:</strong> {viewingOrder.customer.name}</p>
-                      <p><strong>Email:</strong> {viewingOrder.customer.email}</p>
-                      <p><strong>Phone:</strong> {viewingOrder.customer.phone}</p>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-medium mb-2">Shipping Information</h3>
-                    <div className="bg-muted/30 p-3 rounded-md">
-                      <p>{viewingOrder.shippingAddress.street}</p>
-                      <p>{viewingOrder.shippingAddress.city}, {viewingOrder.shippingAddress.state} {viewingOrder.shippingAddress.zipCode}</p>
-                      <p>{viewingOrder.shippingAddress.country}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="font-medium mb-2">Order Items</h3>
-                  <div className="border rounded-md overflow-hidden">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="bg-muted/50 text-left">
-                          <th className="p-3">Item</th>
-                          <th className="p-3">Quantity</th>
-                          <th className="p-3 text-right">Price</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {viewingOrder.items.map((item, index) => (
-                          <tr key={index} className="border-t">
-                            <td className="p-3">
-                              <div className="flex items-center gap-3">
-                                <div className="h-12 w-12 rounded-md bg-secondary overflow-hidden">
-                                  <img
-                                    src={item.product.images[0]}
-                                    alt={item.product.name}
-                                    className="h-full w-full object-cover"
-                                  />
-                                </div>
-                                <div>
-                                  <div className="font-medium">{item.product.name}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {item.variant.size}, {item.variant.color}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="p-3">{item.quantity}</td>
-                            <td className="p-3 text-right">₹{(item.price / 100).toFixed(2)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot className="bg-muted/20">
-                        <tr className="border-t">
-                          <td colSpan={2} className="p-3 text-right font-medium">Subtotal:</td>
-                          <td className="p-3 text-right">₹{(viewingOrder.subtotal / 100).toFixed(2)}</td>
-                        </tr>
-                        <tr>
-                          <td colSpan={2} className="p-3 text-right font-medium">Shipping:</td>
-                          <td className="p-3 text-right">₹{(viewingOrder.shipping / 100).toFixed(2)}</td>
-                        </tr>
-                        <tr>
-                          <td colSpan={2} className="p-3 text-right font-medium">Total:</td>
-                          <td className="p-3 text-right font-bold">₹{(viewingOrder.total / 100).toFixed(2)}</td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="font-medium mb-2">Update Order Status</h3>
-                  <div className="flex flex-wrap gap-2">
-                    <Button 
-                      variant={viewingOrder.status === "Processing" ? "default" : "outline"}
-                      onClick={() => handleUpdateOrderStatus(viewingOrder.id, "Processing")}
-                    >
-                      Processing
-                    </Button>
-                    <Button 
-                      variant={viewingOrder.status === "Shipped" ? "default" : "outline"}
-                      onClick={() => handleUpdateOrderStatus(viewingOrder.id, "Shipped")}
-                    >
-                      Shipped
-                    </Button>
-                    <Button 
-                      variant={viewingOrder.status === "Delivered" ? "default" : "outline"}
-                      onClick={() => handleUpdateOrderStatus(viewingOrder.id, "Delivered")}
-                    >
-                      Delivered
-                    </Button>
-                    <Button 
-                      variant={viewingOrder.status === "Cancelled" ? "destructive" : "outline"}
-                      onClick={() => handleUpdateOrderStatus(viewingOrder.id, "Cancelled")}
-                    >
-                      Cancel Order
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-// Helper component for Order Status Badge
-function StatusBadge({ status }: { status: OrderStatus }) {
-  const statusMap: Record<OrderStatus, { color: string, label: string }> = {
-    "Processing": { color: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-800/30 dark:text-blue-400 dark:border-blue-800", label: "Processing" },
-    "Shipped": { color: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-800/30 dark:text-yellow-400 dark:border-yellow-800", label: "Shipped" },
-    "Delivered": { color: "bg-green-100 text-green-800 border-green-200 dark:bg-green-800/30 dark:text-green-400 dark:border-green-800", label: "Delivered" },
-    "Cancelled": { color: "bg-red-100 text-red-800 border-red-200 dark:bg-red-800/30 dark:text-red-400 dark:border-red-800", label: "Cancelled" }
-  };
-  
-  const { color, label } = statusMap[status];
-  
-  return (
-    <div className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${color}`}>
-      {label}
-    </div>
-  );
-}
