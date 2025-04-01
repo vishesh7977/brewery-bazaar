@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { Product, ProductVariant, CartItem, Cart, Order, Address, Customer, OrderStatus } from '@/types';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 
 type CartState = {
@@ -36,7 +36,7 @@ const loadCartFromStorage = (): CartState => {
 
 // Calculate total price from cart items
 const calculateTotal = (items: CartItem[]): number => {
-  return items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  return items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 };
 
 const cartReducer = (state: CartState, action: CartAction): CartState => {
@@ -67,7 +67,8 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
             variantId: variant.id,
             product,
             selectedVariant: variant,
-            quantity
+            quantity,
+            price: product.price // Set price from product
           }
         ];
       }
@@ -96,6 +97,15 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
     
     case 'UPDATE_QUANTITY': {
       const { productId, variantId, quantity } = action.payload;
+      
+      // If quantity is 0, remove the item
+      if (quantity <= 0) {
+        return cartReducer(state, { 
+          type: 'REMOVE_ITEM', 
+          payload: { productId, variantId } 
+        });
+      }
+      
       const newItems = state.items.map(item => {
         if (item.productId === productId && item.variantId === variantId) {
           return { ...item, quantity };
@@ -187,7 +197,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   
   const updateQuantity = (productId: string, variantId: string, quantity: number) => {
-    if (quantity < 1) return;
+    if (quantity < 1) {
+      removeItem(productId, variantId);
+      return;
+    }
     
     // Find the item and check stock
     const item = state.items.find(
@@ -223,12 +236,21 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const shipping = subtotal >= 99900 ? 0 : 10000; // Free shipping for orders above ₹999
     const total = subtotal + shipping;
     
+    // Ensure billing address exists
+    const billingAddress = state.billingAddress || state.shippingAddress || {
+      street: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      country: "India"
+    };
+    
     // Create order items
     const items = state.items.map(item => ({
       product: item.product,
       variant: item.selectedVariant,
       quantity: item.quantity,
-      price: item.product.price * item.quantity
+      price: item.price
     }));
     
     // Create new order
@@ -243,13 +265,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         zipCode: "",
         country: "India"
       },
-      billingAddress: state.billingAddress || {
-        street: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        country: "India"
-      },
+      billingAddress: billingAddress,
       subtotal,
       shipping,
       total,

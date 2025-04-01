@@ -22,13 +22,13 @@ import {
 } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { Order } from "@/types";
+import { Order, Address } from "@/types";
 import { motion } from "framer-motion";
 
 export default function Cart() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { cart, updateQuantity, clearCart } = useCart();
+  const { cart, updateQuantity, removeItem, clearCart } = useCart();
   const [orders, setOrders] = useLocalStorage<Order[]>("orders", []);
   
   // Shipping form state
@@ -88,6 +88,15 @@ export default function Cart() {
       return;
     }
     
+    // Create shipping address
+    const shippingAddress: Address = {
+      street: shippingInfo.address,
+      city: shippingInfo.city,
+      state: shippingInfo.state,
+      zipCode: shippingInfo.zipCode,
+      country: shippingInfo.country,
+    };
+    
     // Create order object
     const orderId = `ORD-${Date.now().toString().slice(-8)}`;
     const newOrder: Order = {
@@ -99,16 +108,11 @@ export default function Cart() {
         email: shippingInfo.email,
         phone: shippingInfo.phone,
       },
-      shippingAddress: {
-        street: shippingInfo.address,
-        city: shippingInfo.city,
-        state: shippingInfo.state,
-        zipCode: shippingInfo.zipCode,
-        country: shippingInfo.country,
-      },
+      shippingAddress,
+      billingAddress: shippingAddress, // Use same address for billing
       items: cart.items.map(item => ({
         product: item.product,
-        variant: item.variant,
+        variant: item.selectedVariant,
         quantity: item.quantity,
         price: item.price
       })),
@@ -149,11 +153,6 @@ export default function Cart() {
       title: "Razorpay Payment",
       description: "Payment of ₹" + (order.total/100).toFixed(2) + " processed successfully via Razorpay!"
     });
-  };
-  
-  // Custom removeFromCart function since it doesn't exist in CartContextType
-  const removeFromCart = (item: any) => {
-    updateQuantity(item.productId, item.variantId, 0);
   };
   
   // Empty cart view
@@ -218,7 +217,7 @@ export default function Cart() {
               <div className="space-y-6">
                 {cart.items.map((item, index) => (
                   <motion.div 
-                    key={`${item.product.id}-${item.variant.id}`}
+                    key={`${item.productId}-${item.variantId}`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.1 * index }}
@@ -236,7 +235,7 @@ export default function Cart() {
                         <div>
                           <h3 className="font-medium">{item.product.name}</h3>
                           <div className="text-sm text-muted-foreground mb-2">
-                            {item.variant.size} • {item.variant.color}
+                            {item.selectedVariant.size} • {item.selectedVariant.color}
                           </div>
                         </div>
                         <div className="text-right">
@@ -268,7 +267,7 @@ export default function Cart() {
                             size="icon"
                             className="h-8 w-8 rounded-l-none"
                             onClick={() => updateQuantity(item.productId, item.variantId, item.quantity + 1)}
-                            disabled={item.quantity >= item.variant.stock}
+                            disabled={item.quantity >= item.selectedVariant.stock}
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
@@ -278,7 +277,7 @@ export default function Cart() {
                           variant="ghost"
                           size="sm"
                           className="text-muted-foreground hover:text-destructive"
-                          onClick={() => removeFromCart(item)}
+                          onClick={() => removeItem(item.productId, item.variantId)}
                         >
                           <Trash2 className="h-4 w-4 mr-1" />
                           Remove

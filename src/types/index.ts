@@ -38,6 +38,7 @@ export interface CartItem {
   quantity: number;
   product: Product;
   selectedVariant: ProductVariant;
+  price: number; // Added price field
 }
 
 export interface Cart {
