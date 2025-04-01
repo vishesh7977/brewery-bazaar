@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Separator } from "@/components/ui/separator";
 import { ChevronLeft, ChevronRight, Star, Package, ShoppingBag, CircleCheck, CircleAlert, Share2, Heart, Eye, Truck, RotateCcw, Shield, Info } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { Tab, Tabs, TabList, TabPanel } from "@/components/ui/tabs";
+import { useToast } from "@/components/ui/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { SizeChart } from "@/components/product/SizeChart";
-import { Reviews } from "@/components/product/Reviews";
-import { ReviewForm } from "@/components/product/ReviewForm";
+import SizeChart from "@/components/product/SizeChart";
+import Reviews from "@/components/product/Reviews";
+import ReviewForm from "@/components/product/ReviewForm";
 import { products as initialProducts } from "@/lib/data";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/contexts/CartContext";
@@ -463,12 +463,12 @@ export default function ProductDetail() {
       {/* Product Tabs */}
       <div className="my-12">
         <Tabs defaultValue="details">
-          <TabList className="mb-8">
-            <Tab value="details">Product Details</Tab>
-            <Tab value="reviews">Reviews ({product.reviews})</Tab>
-          </TabList>
+          <TabsList className="mb-8">
+            <TabsTrigger value="details">Product Details</TabsTrigger>
+            <TabsTrigger value="reviews">Reviews ({product.reviews})</TabsTrigger>
+          </TabsList>
           
-          <TabPanel value="details">
+          <TabsContent value="details">
             <div className="prose dark:prose-invert max-w-none">
               <h3>Description</h3>
               <p>{product.description}</p>
@@ -491,9 +491,9 @@ export default function ProductDetail() {
                 <li>Do not dry clean</li>
               </ul>
             </div>
-          </TabPanel>
+          </TabsContent>
           
-          <TabPanel value="reviews">
+          <TabsContent value="reviews">
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h3 className="text-xl font-bold">Customer Reviews</h3>
@@ -506,7 +506,7 @@ export default function ProductDetail() {
                 reviewCount={product.reviews}
               />
             </div>
-          </TabPanel>
+          </TabsContent>
         </Tabs>
       </div>
       
