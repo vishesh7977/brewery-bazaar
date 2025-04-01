@@ -9,13 +9,19 @@ import { Link } from "react-router-dom";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { ChevronDown, ChevronUp, SlidersHorizontal, X, Star } from "lucide-react";
+import { ChevronDown, ChevronUp, SlidersHorizontal, X, Star, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 export default function Products() {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const categoryFromUrl = queryParams.get("category");
+  const { toast } = useToast();
+
+  // Use products from localStorage to ensure we get the latest data
+  const [storedProducts] = useLocalStorage<Product[]>("products", products);
   
   // State for filters and filtered products
   const [filters, setFilters] = useState<FilterState>({
@@ -28,6 +34,11 @@ export default function Products() {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   
+  // Only show t-shirts and shorts categories
+  const filteredCategories = categories.filter(
+    category => category.slug === "t-shirts" || category.slug === "shorts"
+  );
+  
   // Available sizes and colors
   const sizes = ["S", "M", "L", "XL", "XXL", "One Size", "30", "32", "34", "36"];
   const colors = [
@@ -38,9 +49,25 @@ export default function Products() {
     { name: "Beige", code: "#F5F5DC" },
   ];
   
-  // Apply filters
+  // Initial notification when products are loaded
   useEffect(() => {
-    let result = [...products];
+    if (storedProducts.length > 0) {
+      toast({
+        title: "Products Loaded",
+        description: `${storedProducts.length} products available to browse`,
+      });
+    }
+  }, []);
+  
+  // Apply filters - but only include t-shirts and shorts regardless of filter
+  useEffect(() => {
+    // First filter to only t-shirts and shorts
+    let allowedProducts = storedProducts.filter(p => 
+      p.category === "t-shirts" || p.category === "shorts"
+    );
+    
+    // Then apply user filters
+    let result = [...allowedProducts];
     
     // Filter by category
     if (filters.category) {
@@ -71,7 +98,7 @@ export default function Products() {
     }
     
     setFilteredProducts(result);
-  }, [filters]);
+  }, [filters, storedProducts]);
   
   // Handle filter changes
   const handleCategoryChange = (category: string | null) => {
@@ -110,6 +137,25 @@ export default function Products() {
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
   };
   
+  const staggerContainer = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+  
+  const itemVariant = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.5 }
+    }
+  };
+  
   return (
     <div className="container mx-auto px-4 py-8">
       <motion.h1 
@@ -119,7 +165,7 @@ export default function Products() {
         className="text-3xl font-bold mb-8 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent"
       >
         {filters.category 
-          ? `${categories.find(c => c.slug === filters.category)?.name || "Products"}`
+          ? `${filteredCategories.find(c => c.slug === filters.category)?.name || "Products"}`
           : "All Products"
         }
       </motion.h1>
@@ -158,7 +204,7 @@ export default function Products() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className={`${showFilters ? 'block' : 'hidden'} lg:block w-full lg:w-64 space-y-6 bg-card/30 p-4 rounded-lg border border-border/50`}
+          className={`${showFilters ? 'block' : 'hidden'} lg:block w-full lg:w-64 space-y-6 bg-card/30 p-4 rounded-lg border border-border/50 backdrop-blur-sm`}
         >
           <div className="hidden lg:flex justify-between items-center mb-4">
             <h2 className="font-medium">Filters</h2>
@@ -189,7 +235,7 @@ export default function Products() {
                   All Products
                 </Button>
               </div>
-              {categories.map((category) => (
+              {filteredCategories.map((category) => (
                 <div key={category.id} className="flex items-center">
                   <Button
                     variant="ghost"
@@ -248,7 +294,9 @@ export default function Products() {
             <div className="flex flex-wrap gap-3">
               {colors.map((color) => (
                 <div key={color.name} className="flex flex-col items-center gap-1">
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => handleColorChange(color.name)}
                     className={`w-8 h-8 rounded-full transition-all border ${
                       filters.color === color.name 
@@ -266,9 +314,9 @@ export default function Products() {
         
         {/* Products grid with improved card design */}
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
           className="flex-1"
         >
           {filteredProducts.length > 0 ? (
@@ -278,68 +326,93 @@ export default function Products() {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredProducts.map((product) => (
-                  <Link key={product.id} to={`/product/${product.id}`}>
-                    <Card className="group overflow-hidden border-none rounded-md shadow-md hover:shadow-xl transition-all duration-300">
-                      <div className="aspect-square bg-gradient-to-br from-muted/50 to-muted relative overflow-hidden">
-                        <img
-                          src={product.images[0]}
-                          alt={product.name}
-                          className="object-cover w-full h-full transform transition-transform duration-500 group-hover:scale-110"
-                        />
-                        {product.originalPrice && (
-                          <div className="absolute top-2 left-2 bg-black text-white text-xs font-medium px-2 py-1 rounded">
-                            Sale
-                          </div>
-                        )}
-                      </div>
-                      <CardContent className="pt-4 px-3">
-                        <div className="text-sm text-muted-foreground mb-1 capitalize">
-                          {product.category.replace('-', ' ')}
-                        </div>
-                        <h3 className="font-medium mb-1 group-hover:text-primary transition-colors">
-                          {product.name}
-                        </h3>
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="flex">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`h-3 w-3 ${
-                                  i < Math.floor(product.rating)
-                                    ? "text-yellow-500 fill-yellow-500"
-                                    : "text-muted-foreground"
-                                }`}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            ({product.reviews})
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">
-                            ₹{(product.price / 100).toFixed(2)}
-                          </span>
+                  <motion.div key={product.id} variants={itemVariant}>
+                    <Link to={`/product/${product.id}`}>
+                      <Card className="group overflow-hidden border-none rounded-md shadow-md hover:shadow-xl transition-all duration-300">
+                        <div className="aspect-square bg-gradient-to-br from-muted/50 to-muted relative overflow-hidden">
+                          <img
+                            src={product.images[0]}
+                            alt={product.name}
+                            className="object-cover w-full h-full transform transition-transform duration-500 group-hover:scale-110"
+                          />
                           {product.originalPrice && (
-                            <span className="text-muted-foreground line-through text-sm">
-                              ₹{(product.originalPrice / 100).toFixed(2)}
-                            </span>
+                            <div className="absolute top-2 left-2 bg-black text-white text-xs font-medium px-2 py-1 rounded">
+                              Sale
+                            </div>
+                          )}
+                          {product.featured && (
+                            <div className="absolute top-2 right-2 bg-primary/90 text-primary-foreground text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
+                              <Sparkles className="h-3 w-3" />
+                              Featured
+                            </div>
                           )}
                         </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
+                        <CardContent className="pt-4 px-3">
+                          <div className="text-sm text-muted-foreground mb-1 capitalize">
+                            {product.category.replace('-', ' ')}
+                          </div>
+                          <h3 className="font-medium mb-1 group-hover:text-primary transition-colors">
+                            {product.name}
+                          </h3>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="flex">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`h-3 w-3 ${
+                                    i < Math.floor(product.rating)
+                                      ? "text-yellow-500 fill-yellow-500"
+                                      : "text-muted-foreground"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              ({product.reviews})
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">
+                              ₹{(product.price / 100).toFixed(2)}
+                            </span>
+                            {product.originalPrice && (
+                              <span className="text-muted-foreground line-through text-sm">
+                                ₹{(product.originalPrice / 100).toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileHover={{ opacity: a: 1, y: 0 }}
+                            className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full border-primary/30 hover:bg-primary/10"
+                            >
+                              View Product
+                            </Button>
+                          </motion.div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </motion.div>
                 ))}
               </div>
             </>
           ) : (
-            <div className="text-center py-12 bg-card/30 rounded-lg border border-border/50">
+            <motion.div 
+              variants={fadeIn}
+              className="text-center py-12 bg-card/30 rounded-lg border border-border/50 backdrop-blur-sm"
+            >
               <h3 className="text-lg font-medium mb-2">No products found</h3>
               <p className="text-muted-foreground mb-6">
                 Try adjusting your filters or browse our categories below.
               </p>
               <div className="flex flex-wrap justify-center gap-2">
-                {categories.map((category) => (
+                {filteredCategories.map((category) => (
                   <Button
                     key={category.id}
                     variant="outline"
@@ -350,7 +423,7 @@ export default function Products() {
                   </Button>
                 ))}
               </div>
-            </div>
+            </motion.div>
           )}
         </motion.div>
       </div>

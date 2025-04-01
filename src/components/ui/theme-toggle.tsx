@@ -31,16 +31,41 @@ export function ThemeToggle() {
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
     >
       <Button
         variant="outline"
         size="icon"
         onClick={toggleTheme}
         aria-label="Toggle theme"
-        className="rounded-full w-10 h-10 border-primary/30 hover:bg-primary/10"
+        className="rounded-full w-10 h-10 border-primary/30 hover:bg-primary/10 relative overflow-hidden"
       >
-        <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-        <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+        <motion.div
+          initial={false}
+          animate={{ 
+            rotate: theme === "dark" ? 45 : 0,
+            opacity: theme === "dark" ? 0 : 1,
+            y: theme === "dark" ? -30 : 0
+          }}
+          transition={{ duration: 0.5 }}
+          className="absolute inset-0 flex items-center justify-center"
+        >
+          <Sun className="h-5 w-5" />
+        </motion.div>
+        
+        <motion.div
+          initial={false}
+          animate={{ 
+            rotate: theme === "dark" ? 0 : -45, 
+            opacity: theme === "dark" ? 1 : 0,
+            y: theme === "dark" ? 0 : 30 
+          }}
+          transition={{ duration: 0.5 }}
+          className="absolute inset-0 flex items-center justify-center"
+        >
+          <Moon className="h-5 w-5" />
+        </motion.div>
         <span className="sr-only">Toggle theme</span>
       </Button>
     </motion.div>
