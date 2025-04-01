@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Separator } from "@/components/ui/separator";
 import { ChevronLeft, ChevronRight, Star, Package, ShoppingBag, CircleCheck, CircleAlert, Share2, Heart, Eye, Truck, RotateCcw, Shield, Info } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import SizeChart from "@/components/product/SizeChart";
@@ -283,18 +283,18 @@ export default function ProductDetail() {
                     );
                     
                     return (
-                      <div key={size} className="relative">
+                      <div key={size as string} className="relative">
                         <RadioGroupItem
-                          value={size}
-                          id={`size-${size}`}
+                          value={size as string}
+                          id={`size-${size as string}`}
                           className="peer sr-only"
                           disabled={!isAvailable}
                         />
                         <Label
-                          htmlFor={`size-${size}`}
+                          htmlFor={`size-${size as string}`}
                           className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-md border border-muted bg-transparent text-center text-sm font-medium ring-offset-background transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 peer-data-[state=checked]:text-primary peer-disabled:bg-muted/50 peer-disabled:text-muted-foreground/50"
                         >
-                          {size}
+                          {size as React.ReactNode}
                         </Label>
                       </div>
                     );
@@ -329,15 +329,15 @@ export default function ProductDetail() {
                   const isAvailable = variant?.stock && variant.stock > 0;
                   
                   return (
-                    <div key={color} className="relative">
+                    <div key={color as string} className="relative">
                       <RadioGroupItem
-                        value={color}
-                        id={`color-${color}`}
+                        value={color as string}
+                        id={`color-${color as string}`}
                         className="peer sr-only"
                         disabled={!isAvailable}
                       />
                       <Label
-                        htmlFor={`color-${color}`}
+                        htmlFor={`color-${color as string}`}
                         className="flex h-10 cursor-pointer items-center justify-center rounded-md border border-muted bg-transparent px-3 text-center text-sm font-medium ring-offset-background transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 peer-data-[state=checked]:text-primary peer-disabled:bg-muted/50 peer-disabled:text-muted-foreground/50"
                       >
                         <span
@@ -347,7 +347,7 @@ export default function ProductDetail() {
                             borderColor: variant?.colorCode === "#FFFFFF" ? "#ddd" : variant?.colorCode,
                           }}
                         />
-                        {color}
+                        {color as React.ReactNode}
                       </Label>
                     </div>
                   );
