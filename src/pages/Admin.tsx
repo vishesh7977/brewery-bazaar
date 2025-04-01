@@ -18,6 +18,7 @@ import { Product, ProductVariant, Order, OrderStatus } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 // Helper component for order status badge
 const StatusBadge = ({ status }: { status: OrderStatus }) => {
@@ -243,12 +244,15 @@ export default function Admin() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-end mb-6">
+        <ThemeToggle />
+      </div>
       
       <motion.h1 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="text-3xl font-bold mb-8"
+        className="text-3xl font-bold mb-8 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent"
       >
         Admin Dashboard
       </motion.h1>
@@ -259,7 +263,7 @@ export default function Admin() {
         transition={{ duration: 0.5, delay: 0.1 }}
         className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
       >
-        <Card className="overflow-hidden bg-gradient-to-br from-primary/5 to-primary/10">
+        <Card className="overflow-hidden bg-gradient-to-br from-primary/5 to-primary/10 hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Sales
@@ -273,7 +277,7 @@ export default function Admin() {
           </CardContent>
         </Card>
         
-        <Card className="overflow-hidden bg-gradient-to-br from-orange-500/5 to-orange-500/10">
+        <Card className="overflow-hidden bg-gradient-to-br from-orange-500/5 to-orange-500/10 hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Orders
@@ -287,7 +291,7 @@ export default function Admin() {
           </CardContent>
         </Card>
         
-        <Card className="overflow-hidden bg-gradient-to-br from-blue-500/5 to-blue-500/10">
+        <Card className="overflow-hidden bg-gradient-to-br from-blue-500/5 to-blue-500/10 hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Products
@@ -301,7 +305,7 @@ export default function Admin() {
           </CardContent>
         </Card>
         
-        <Card className="overflow-hidden bg-gradient-to-br from-green-500/5 to-green-500/10">
+        <Card className="overflow-hidden bg-gradient-to-br from-green-500/5 to-green-500/10 hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Customers
@@ -333,7 +337,7 @@ export default function Admin() {
         </TabsList>
         
         <TabsContent value="products">
-          <Card className="bg-card/50 backdrop-blur-sm border border-border/50">
+          <Card className="bg-card/50 backdrop-blur-sm border border-border/50 hover:shadow-lg transition-shadow duration-300">
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
@@ -369,7 +373,7 @@ export default function Admin() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button onClick={handleAddProduct}>
+                  <Button onClick={handleAddProduct} className="bg-primary hover:bg-primary/90 transition-colors">
                     <Plus className="mr-2 h-4 w-4" />
                     Add Product
                   </Button>
@@ -448,7 +452,7 @@ export default function Admin() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-8 w-8 p-0"
+                                  className="h-8 w-8 p-0 hover:bg-primary/10"
                                   asChild
                                 >
                                   <Link to={`/product/${product.id}`} target="_blank">
@@ -459,7 +463,7 @@ export default function Admin() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-8 w-8 p-0"
+                                  className="h-8 w-8 p-0 hover:bg-primary/10"
                                   onClick={() => handleEditProduct(product)}
                                 >
                                   <Edit className="h-4 w-4" />
@@ -468,7 +472,7 @@ export default function Admin() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-8 w-8 p-0"
+                                  className="h-8 w-8 p-0 hover:bg-destructive/10"
                                   onClick={() => handleDeleteProduct(product.id)}
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -497,7 +501,7 @@ export default function Admin() {
         </TabsContent>
         
         <TabsContent value="orders">
-          <Card className="bg-card/50 backdrop-blur-sm border border-border/50">
+          <Card className="bg-card/50 backdrop-blur-sm border border-border/50 hover:shadow-lg transition-shadow duration-300">
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
@@ -562,6 +566,7 @@ export default function Admin() {
                               <Button 
                                 size="sm" 
                                 variant="ghost"
+                                className="hover:bg-primary/10"
                                 onClick={() => setViewingOrder(order)}
                               >
                                 View
@@ -586,7 +591,7 @@ export default function Admin() {
         </TabsContent>
         
         <TabsContent value="customers">
-          <Card className="bg-card/50 backdrop-blur-sm border border-border/50">
+          <Card className="bg-card/50 backdrop-blur-sm border border-border/50 hover:shadow-lg transition-shadow duration-300">
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
@@ -634,7 +639,7 @@ export default function Admin() {
                             <td className="p-3">{customer.orders}</td>
                             <td className="p-3">₹{(customer.spent / 100).toFixed(2)}</td>
                             <td className="p-3 text-right">
-                              <Button size="sm" variant="ghost">
+                              <Button size="sm" variant="ghost" className="hover:bg-primary/10">
                                 View
                               </Button>
                             </td>
@@ -659,9 +664,11 @@ export default function Admin() {
       
       {/* Product form dialog */}
       <Dialog open={showProductForm} onOpenChange={setShowProductForm}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto bg-card/95 backdrop-blur-lg">
           <DialogHeader>
-            <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
+            <DialogTitle className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+              {editingProduct ? "Edit Product" : "Add New Product"}
+            </DialogTitle>
             <DialogDescription>
               {editingProduct 
                 ? "Make changes to the product here. Click save when you're done." 
@@ -678,6 +685,7 @@ export default function Admin() {
                   value={formProduct.name || ""}
                   onChange={(e) => setFormProduct({ ...formProduct, name: e.target.value })}
                   placeholder="Product name"
+                  className="focus:ring-primary/30"
                 />
               </div>
               
@@ -709,6 +717,7 @@ export default function Admin() {
                 onChange={(e) => setFormProduct({ ...formProduct, description: e.target.value })}
                 placeholder="Product description"
                 rows={4}
+                className="focus:ring-primary/30"
               />
             </div>
             
@@ -723,6 +732,7 @@ export default function Admin() {
                   value={formProduct.price || 0}
                   onChange={(e) => setFormProduct({ ...formProduct, price: parseInt(e.target.value) })}
                   placeholder="Price"
+                  className="focus:ring-primary/30"
                 />
                 <p className="text-sm text-muted-foreground">
                   ₹{((formProduct.price || 0) / 100).toFixed(2)}
@@ -742,6 +752,7 @@ export default function Admin() {
                     setFormProduct({ ...formProduct, originalPrice: value });
                   }}
                   placeholder="Original price"
+                  className="focus:ring-primary/30"
                 />
                 {formProduct.originalPrice && (
                   <p className="text-sm text-muted-foreground">
@@ -776,6 +787,7 @@ export default function Admin() {
                         setFormProduct({ ...formProduct, images: updatedImages });
                       }}
                       placeholder="Image URL"
+                      className="focus:ring-primary/30"
                     />
                     <Button
                       variant="ghost"
@@ -786,6 +798,7 @@ export default function Admin() {
                         setFormProduct({ ...formProduct, images: updatedImages });
                       }}
                       disabled={(formProduct.images || []).length <= 1}
+                      className="hover:bg-destructive/10"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -800,6 +813,7 @@ export default function Admin() {
                       images: [...(formProduct.images || []), ""]
                     });
                   }}
+                  className="hover:bg-primary/10"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Image
@@ -810,7 +824,13 @@ export default function Admin() {
             <div>
               <div className="flex justify-between items-center mb-2">
                 <Label>Product Variants</Label>
-                <Button type="button" variant="outline" size="sm" onClick={handleAddVariant}>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleAddVariant}
+                  className="hover:bg-primary/10"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Variant
                 </Button>
@@ -819,7 +839,7 @@ export default function Admin() {
               {formProduct.variants && formProduct.variants.length > 0 ? (
                 <div className="space-y-3">
                   {formProduct.variants.map((variant, index) => (
-                    <div key={variant.id} className="border p-4 rounded-md">
+                    <div key={variant.id} className="border p-4 rounded-md bg-background/50">
                       <div className="flex justify-between items-center mb-3">
                         <h4 className="font-medium">Variant {index + 1}</h4>
                         <Button
@@ -828,6 +848,7 @@ export default function Admin() {
                           size="sm"
                           onClick={() => handleRemoveVariant(variant.id)}
                           disabled={formProduct.variants?.length === 1}
+                          className="hover:bg-destructive/10"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -891,6 +912,7 @@ export default function Admin() {
                             value={variant.stock}
                             onChange={(e) => handleVariantChange(variant.id, "stock", parseInt(e.target.value) || 0)}
                             placeholder="Stock count"
+                            className="focus:ring-primary/30"
                           />
                         </div>
                       </div>
@@ -906,10 +928,10 @@ export default function Admin() {
           </div>
           
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setShowProductForm(false)}>
+            <Button type="button" variant="outline" onClick={() => setShowProductForm(false)} className="hover:bg-muted/50">
               Cancel
             </Button>
-            <Button type="button" onClick={handleSaveProduct}>
+            <Button type="button" onClick={handleSaveProduct} className="bg-primary hover:bg-primary/90 transition-colors">
               <Save className="mr-2 h-4 w-4" />
               {editingProduct ? "Save Changes" : "Add Product"}
             </Button>
@@ -920,9 +942,11 @@ export default function Admin() {
       {/* Order view dialog */}
       {viewingOrder && (
         <Dialog open={!!viewingOrder} onOpenChange={() => setViewingOrder(null)}>
-          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto bg-card/95 backdrop-blur-lg">
             <DialogHeader>
-              <DialogTitle>Order #{viewingOrder.id}</DialogTitle>
+              <DialogTitle className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                Order #{viewingOrder.id}
+              </DialogTitle>
               <DialogDescription>
                 Placed on {new Date(viewingOrder.date).toLocaleDateString()} by {viewingOrder.customer.name}
               </DialogDescription>
@@ -964,7 +988,7 @@ export default function Admin() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h4 className="text-sm font-medium mb-2">Customer Details</h4>
-                  <Card>
+                  <Card className="hover:shadow-md transition-shadow duration-300">
                     <CardContent className="p-4">
                       <div className="space-y-2">
                         <div className="text-sm font-medium">{viewingOrder.customer.name}</div>
@@ -977,15 +1001,15 @@ export default function Admin() {
                 
                 <div>
                   <h4 className="text-sm font-medium mb-2">Shipping Address</h4>
-                  <Card>
+                  <Card className="hover:shadow-md transition-shadow duration-300">
                     <CardContent className="p-4">
                       <div className="space-y-1 text-sm">
-                        <div>{viewingOrder.shippingAddress.line1}</div>
-                        {viewingOrder.shippingAddress.line2 && (
-                          <div>{viewingOrder.shippingAddress.line2}</div>
+                        <div>{viewingOrder.shippingAddress.street}</div>
+                        {viewingOrder.shippingAddress.street2 && (
+                          <div>{viewingOrder.shippingAddress.street2}</div>
                         )}
                         <div>
-                          {viewingOrder.shippingAddress.city}, {viewingOrder.shippingAddress.state} {viewingOrder.shippingAddress.postalCode}
+                          {viewingOrder.shippingAddress.city}, {viewingOrder.shippingAddress.state} {viewingOrder.shippingAddress.zip}
                         </div>
                         <div>{viewingOrder.shippingAddress.country}</div>
                       </div>
@@ -996,7 +1020,7 @@ export default function Admin() {
               
               <div>
                 <h4 className="text-sm font-medium mb-2">Order Items</h4>
-                <Card>
+                <Card className="hover:shadow-md transition-shadow duration-300">
                   <CardContent className="p-0">
                     <div className="overflow-auto max-h-[300px]">
                       <table className="w-full">
@@ -1016,12 +1040,12 @@ export default function Admin() {
                                 <div className="flex items-center gap-3">
                                   <div className="h-10 w-10 rounded-md bg-secondary overflow-hidden">
                                     <img 
-                                      src={item.image} 
-                                      alt={item.name} 
+                                      src={item.product.images[0]} 
+                                      alt={item.product.name} 
                                       className="h-full w-full object-cover" 
                                     />
                                   </div>
-                                  <div className="font-medium">{item.name}</div>
+                                  <div className="font-medium">{item.product.name}</div>
                                 </div>
                               </td>
                               <td className="p-3">
@@ -1052,7 +1076,7 @@ export default function Admin() {
                           </tr>
                           <tr className="border-t">
                             <td colSpan={4} className="p-3 text-right font-medium">Tax</td>
-                            <td className="p-3 text-right">₹{(viewingOrder.tax / 100).toFixed(2)}</td>
+                            <td className="p-3 text-right">₹{((viewingOrder.total - viewingOrder.subtotal - viewingOrder.shipping) / 100).toFixed(2)}</td>
                           </tr>
                           <tr className="border-t">
                             <td colSpan={4} className="p-3 text-right font-medium">Total</td>
@@ -1068,22 +1092,23 @@ export default function Admin() {
               <div>
                 <h4 className="text-sm font-medium mb-2">Order Notes</h4>
                 <Textarea
-                  value={viewingOrder.notes || ""}
+                  value={viewingOrder.additionalInfo || ""}
                   onChange={(e) => {
                     if (viewingOrder) {
-                      const updatedOrder = { ...viewingOrder, notes: e.target.value };
+                      const updatedOrder = { ...viewingOrder, additionalInfo: e.target.value };
                       setViewingOrder(updatedOrder);
                       setOrders(orders.map(o => o.id === updatedOrder.id ? updatedOrder : o));
                     }
                   }}
                   placeholder="Add notes about this order..."
                   rows={3}
+                  className="focus:ring-primary/30"
                 />
               </div>
             </div>
             
             <DialogFooter>
-              <Button variant="outline" onClick={() => setViewingOrder(null)}>
+              <Button variant="outline" onClick={() => setViewingOrder(null)} className="hover:bg-muted/50">
                 Close
               </Button>
             </DialogFooter>
