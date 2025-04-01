@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -835,4 +836,274 @@ export default function Admin() {
                 </Button>
               </div>
               
-              {formProduct.variants && formProduct.variants
+              {formProduct.variants && formProduct.variants.length > 0 ? (
+                <div className="space-y-3">
+                  {formProduct.variants.map((variant, index) => (
+                    <div key={variant.id} className="border p-4 rounded-md">
+                      <div className="flex justify-between items-center mb-3">
+                        <h4 className="font-medium">Variant {index + 1}</h4>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveVariant(variant.id)}
+                          disabled={formProduct.variants?.length === 1}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor={`size-${variant.id}`}>Size</Label>
+                          <Select 
+                            value={variant.size} 
+                            onValueChange={(value) => handleVariantChange(variant.id, "size", value)}
+                          >
+                            <SelectTrigger id={`size-${variant.id}`}>
+                              <SelectValue placeholder="Select a size" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {["XS", "S", "M", "L", "XL", "XXL"].map((size) => (
+                                <SelectItem key={size} value={size}>
+                                  {size}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor={`color-${variant.id}`}>Color</Label>
+                          <Select 
+                            value={variant.color} 
+                            onValueChange={(value) => {
+                              const selectedColor = colorOptions.find(c => c.name === value);
+                              handleVariantChange(variant.id, "color", value);
+                              handleVariantChange(variant.id, "colorCode", selectedColor?.code || "#000000");
+                            }}
+                          >
+                            <SelectTrigger id={`color-${variant.id}`}>
+                              <SelectValue placeholder="Select a color" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {colorOptions.map((color) => (
+                                <SelectItem key={color.name} value={color.name}>
+                                  <div className="flex items-center gap-2">
+                                    <div 
+                                      className="w-4 h-4 rounded-full border border-border"
+                                      style={{ backgroundColor: color.code }}
+                                    ></div>
+                                    {color.name}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor={`stock-${variant.id}`}>Stock</Label>
+                          <Input
+                            id={`stock-${variant.id}`}
+                            type="number"
+                            min="0"
+                            value={variant.stock}
+                            onChange={(e) => handleVariantChange(variant.id, "stock", parseInt(e.target.value))}
+                            placeholder="Stock quantity"
+                            className="focus:ring-primary/30"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center p-4 border rounded-md">
+                  <p className="text-muted-foreground">No variants added yet.</p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowProductForm(false)}
+              className="hover:bg-muted/50"
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="button" 
+              onClick={handleSaveProduct}
+              className="bg-primary hover:bg-primary/90 transition-colors"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Order viewing dialog */}
+      <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>
+        {viewingOrder && (
+          <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto bg-card/95 backdrop-blur-lg">
+            <DialogHeader>
+              <DialogTitle className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                Order #{viewingOrder.id}
+              </DialogTitle>
+              <DialogDescription>
+                Placed on {new Date(viewingOrder.date).toLocaleDateString()} • {viewingOrder.customer.name}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid gap-6 py-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="col-span-2">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Order Items</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {viewingOrder.items.map((item, i) => (
+                        <div key={i} className="flex items-start gap-4 pb-4 border-b last:border-0">
+                          <div className="h-16 w-16 rounded-md bg-secondary overflow-hidden flex-shrink-0">
+                            <img
+                              src={item.product.images[0]}
+                              alt={item.product.name}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium">{item.product.name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {item.variant.size} • {item.variant.color}
+                            </div>
+                            <div className="text-sm text-muted-foreground mt-1">
+                              Quantity: {item.quantity}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium">₹{(item.price / 100).toFixed(2)}</div>
+                            <div className="text-sm text-muted-foreground mt-1">
+                              ₹{((item.price * item.quantity) / 100).toFixed(2)}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="mt-6 space-y-2 border-t pt-4">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span>₹{(viewingOrder.subtotal / 100).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Shipping</span>
+                        <span>₹{(viewingOrder.shipping / 100).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between font-medium pt-2 border-t">
+                        <span>Total</span>
+                        <span>₹{(viewingOrder.total / 100).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Customer</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="font-medium">{viewingOrder.customer.name}</div>
+                        <div className="text-sm text-muted-foreground">{viewingOrder.customer.email}</div>
+                        <div className="text-sm text-muted-foreground">{viewingOrder.customer.phone}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Shipping Address</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-1 text-sm">
+                        <div>{viewingOrder.shippingAddress.street}</div>
+                        {viewingOrder.shippingAddress.street && (
+                          <div>{viewingOrder.shippingAddress.street}</div>
+                        )}
+                        <div>
+                          {viewingOrder.shippingAddress.city}, {viewingOrder.shippingAddress.state} {viewingOrder.shippingAddress.zipCode}
+                        </div>
+                        <div>{viewingOrder.shippingAddress.country}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Status</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <StatusBadge status={viewingOrder.status} />
+                        <Select 
+                          value={viewingOrder.status} 
+                          onValueChange={(value) => handleUpdateOrderStatus(viewingOrder.id, value as OrderStatus)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Update status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Processing">Processing</SelectItem>
+                            <SelectItem value="Shipped">Shipped</SelectItem>
+                            <SelectItem value="Delivered">Delivered</SelectItem>
+                            <SelectItem value="Cancelled">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Payment</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Method</span>
+                          <span>{viewingOrder.paymentMethod}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Status</span>
+                          <span className="text-green-600 dark:text-green-500">Paid</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  {viewingOrder.notes && (
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">Notes</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm">{viewingOrder.notes}</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
+    </div>
+  );
+}

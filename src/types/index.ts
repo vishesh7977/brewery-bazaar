@@ -92,5 +92,5 @@ export interface Order {
   status: OrderStatus;
   date: string;
   paymentMethod: string;
-  notes?: string; // Added notes field as optional
+  notes?: string;
 }
