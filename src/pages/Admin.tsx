@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,30 @@ import { Product, ProductVariant, Order, OrderStatus } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+
+// Helper component for order status badge
+const StatusBadge = ({ status }: { status: OrderStatus }) => {
+  const getStatusColor = () => {
+    switch (status) {
+      case "Processing":
+        return "bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-300";
+      case "Shipped":
+        return "bg-orange-500/20 text-orange-700 dark:text-orange-300 border-orange-300";
+      case "Delivered":
+        return "bg-green-500/20 text-green-700 dark:text-green-300 border-green-300";
+      case "Cancelled":
+        return "bg-red-500/20 text-red-700 dark:text-red-300 border-red-300";
+      default:
+        return "bg-gray-500/20 text-gray-700 dark:text-gray-300 border-gray-300";
+    }
+  };
+
+  return (
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor()}`}>
+      {status}
+    </span>
+  );
+};
 
 export default function Admin() {
   
@@ -862,3 +887,209 @@ export default function Admin() {
                           <Input
                             id={`stock-${variant.id}`}
                             type="number"
+                            min="0"
+                            value={variant.stock}
+                            onChange={(e) => handleVariantChange(variant.id, "stock", parseInt(e.target.value) || 0)}
+                            placeholder="Stock count"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="border rounded-md p-6 text-center text-muted-foreground">
+                  <p>No variants added yet. Click "Add Variant" to create one.</p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setShowProductForm(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleSaveProduct}>
+              <Save className="mr-2 h-4 w-4" />
+              {editingProduct ? "Save Changes" : "Add Product"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Order view dialog */}
+      {viewingOrder && (
+        <Dialog open={!!viewingOrder} onOpenChange={() => setViewingOrder(null)}>
+          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Order #{viewingOrder.id}</DialogTitle>
+              <DialogDescription>
+                Placed on {new Date(viewingOrder.date).toLocaleDateString()} by {viewingOrder.customer.name}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Status</h4>
+                  <Select 
+                    value={viewingOrder.status} 
+                    onValueChange={(value) => handleUpdateOrderStatus(viewingOrder.id, value as OrderStatus)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Processing">Processing</SelectItem>
+                      <SelectItem value="Shipped">Shipped</SelectItem>
+                      <SelectItem value="Delivered">Delivered</SelectItem>
+                      <SelectItem value="Cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Total</h4>
+                  <div className="text-xl font-bold">₹{(viewingOrder.total / 100).toFixed(2)}</div>
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Payment Method</h4>
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm">{viewingOrder.paymentMethod}</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Customer Details</h4>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium">{viewingOrder.customer.name}</div>
+                        <div className="text-sm">{viewingOrder.customer.email}</div>
+                        <div className="text-sm">{viewingOrder.customer.phone}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Shipping Address</h4>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="space-y-1 text-sm">
+                        <div>{viewingOrder.shippingAddress.line1}</div>
+                        {viewingOrder.shippingAddress.line2 && (
+                          <div>{viewingOrder.shippingAddress.line2}</div>
+                        )}
+                        <div>
+                          {viewingOrder.shippingAddress.city}, {viewingOrder.shippingAddress.state} {viewingOrder.shippingAddress.postalCode}
+                        </div>
+                        <div>{viewingOrder.shippingAddress.country}</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="text-sm font-medium mb-2">Order Items</h4>
+                <Card>
+                  <CardContent className="p-0">
+                    <div className="overflow-auto max-h-[300px]">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-muted/50">
+                            <th className="text-left p-3">Product</th>
+                            <th className="text-left p-3">Variant</th>
+                            <th className="text-right p-3">Price</th>
+                            <th className="text-right p-3">Quantity</th>
+                            <th className="text-right p-3">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {viewingOrder.items.map((item, index) => (
+                            <tr key={index} className="border-t">
+                              <td className="p-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="h-10 w-10 rounded-md bg-secondary overflow-hidden">
+                                    <img 
+                                      src={item.image} 
+                                      alt={item.name} 
+                                      className="h-full w-full object-cover" 
+                                    />
+                                  </div>
+                                  <div className="font-medium">{item.name}</div>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                {item.variant && (
+                                  <div className="flex items-center gap-2">
+                                    <div 
+                                      className="w-4 h-4 rounded-full border border-border"
+                                      style={{ backgroundColor: item.variant.colorCode }}
+                                    ></div>
+                                    <span>{item.variant.color}, {item.variant.size}</span>
+                                  </div>
+                                )}
+                              </td>
+                              <td className="p-3 text-right">₹{(item.price / 100).toFixed(2)}</td>
+                              <td className="p-3 text-right">{item.quantity}</td>
+                              <td className="p-3 text-right">₹{(item.price * item.quantity / 100).toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot className="bg-muted/30">
+                          <tr className="border-t">
+                            <td colSpan={4} className="p-3 text-right font-medium">Subtotal</td>
+                            <td className="p-3 text-right">₹{(viewingOrder.subtotal / 100).toFixed(2)}</td>
+                          </tr>
+                          <tr className="border-t">
+                            <td colSpan={4} className="p-3 text-right font-medium">Shipping</td>
+                            <td className="p-3 text-right">₹{(viewingOrder.shipping / 100).toFixed(2)}</td>
+                          </tr>
+                          <tr className="border-t">
+                            <td colSpan={4} className="p-3 text-right font-medium">Tax</td>
+                            <td className="p-3 text-right">₹{(viewingOrder.tax / 100).toFixed(2)}</td>
+                          </tr>
+                          <tr className="border-t">
+                            <td colSpan={4} className="p-3 text-right font-medium">Total</td>
+                            <td className="p-3 text-right font-bold">₹{(viewingOrder.total / 100).toFixed(2)}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <div>
+                <h4 className="text-sm font-medium mb-2">Order Notes</h4>
+                <Textarea
+                  value={viewingOrder.notes || ""}
+                  onChange={(e) => {
+                    if (viewingOrder) {
+                      const updatedOrder = { ...viewingOrder, notes: e.target.value };
+                      setViewingOrder(updatedOrder);
+                      setOrders(orders.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+                    }
+                  }}
+                  placeholder="Add notes about this order..."
+                  rows={3}
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setViewingOrder(null)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
