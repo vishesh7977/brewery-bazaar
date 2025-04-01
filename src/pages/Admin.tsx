@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -832,4 +833,312 @@ export default function Admin() {
             <div className="space-y-2">
               <Label htmlFor="images">Images (URLs)</Label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {(formProduct.images
+                {formProduct.images && formProduct.images.map((imageUrl, index) => (
+                  <div key={index} className="relative rounded-md overflow-hidden group">
+                    <img 
+                      src={imageUrl} 
+                      alt={`Product ${index + 1}`} 
+                      className="w-full h-40 object-cover"
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="destructive"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => {
+                        const newImages = [...(formProduct.images || [])];
+                        newImages.splice(index, 1);
+                        setFormProduct({ ...formProduct, images: newImages });
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <div className="border border-dashed border-gray-300 dark:border-gray-600 rounded-md flex flex-col items-center justify-center p-4 h-40">
+                  <div className="text-center">
+                    <Plus className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <Input
+                      type="url"
+                      placeholder="Add image URL"
+                      className="w-full"
+                      onBlur={(e) => {
+                        if (e.target.value) {
+                          const newImages = [...(formProduct.images || []), e.target.value];
+                          setFormProduct({ ...formProduct, images: newImages });
+                          e.target.value = '';
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.currentTarget.value) {
+                          const newImages = [...(formProduct.images || []), e.currentTarget.value];
+                          setFormProduct({ ...formProduct, images: newImages });
+                          e.currentTarget.value = '';
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Variants</Label>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="text-xs" 
+                  onClick={handleAddVariant}
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add Variant
+                </Button>
+              </div>
+              
+              <div className="space-y-3">
+                {formProduct.variants && formProduct.variants.map((variant, index) => (
+                  <div key={variant.id} className="border rounded-md p-3 relative">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="absolute top-2 right-2 h-6 w-6 p-0 hover:bg-destructive/10"
+                      onClick={() => handleRemoveVariant(variant.id)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <Label htmlFor={`variant-${index}-size`} className="text-xs">Size</Label>
+                        <Select 
+                          value={variant.size}
+                          onValueChange={(value) => handleVariantChange(variant.id, 'size', value)}
+                        >
+                          <SelectTrigger id={`variant-${index}-size`}>
+                            <SelectValue placeholder="Select size" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="XS">XS</SelectItem>
+                            <SelectItem value="S">S</SelectItem>
+                            <SelectItem value="M">M</SelectItem>
+                            <SelectItem value="L">L</SelectItem>
+                            <SelectItem value="XL">XL</SelectItem>
+                            <SelectItem value="XXL">XXL</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor={`variant-${index}-color`} className="text-xs">Color</Label>
+                        <Select 
+                          value={variant.color}
+                          onValueChange={(value) => {
+                            const selectedColor = colorOptions.find(c => c.name === value);
+                            handleVariantChange(variant.id, 'color', value);
+                            handleVariantChange(variant.id, 'colorCode', selectedColor?.code || '#000000');
+                          }}
+                        >
+                          <SelectTrigger id={`variant-${index}-color`}>
+                            <SelectValue placeholder="Select color" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {colorOptions.map(color => (
+                              <SelectItem key={color.name} value={color.name}>
+                                <div className="flex items-center gap-2">
+                                  <div 
+                                    className="h-3 w-3 rounded-full" 
+                                    style={{ backgroundColor: color.code }}
+                                  ></div>
+                                  {color.name}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor={`variant-${index}-stock`} className="text-xs">Stock</Label>
+                        <Input
+                          id={`variant-${index}-stock`}
+                          type="number"
+                          min="0"
+                          value={variant.stock}
+                          onChange={(e) => handleVariantChange(variant.id, 'stock', parseInt(e.target.value))}
+                          className="focus:ring-primary/30"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setShowProductForm(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleSaveProduct}>
+              <Save className="h-4 w-4 mr-2" />
+              Save Product
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Viewing order dialog */}
+      {viewingOrder && (
+        <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Order Details</DialogTitle>
+              <DialogDescription>
+                Order #{viewingOrder.id} - {new Date(viewingOrder.date).toLocaleDateString()}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-1">Customer</h3>
+                  <p>{viewingOrder.customer.name}</p>
+                  <p className="text-sm text-muted-foreground">{viewingOrder.customer.email}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium mb-1">Shipping Address</h3>
+                  <p className="text-sm">{viewingOrder.address.street}</p>
+                  <p className="text-sm">{viewingOrder.address.city}, {viewingOrder.address.state} {viewingOrder.address.zip}</p>
+                  <p className="text-sm">{viewingOrder.address.country}</p>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div>
+                <h3 className="text-sm font-medium mb-2">Order Status</h3>
+                <Select 
+                  value={viewingOrder.status}
+                  onValueChange={(value) => handleUpdateOrderStatus(viewingOrder.id, value as OrderStatus)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Processing">Processing</SelectItem>
+                    <SelectItem value="Shipped">Shipped</SelectItem>
+                    <SelectItem value="Delivered">Delivered</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Separator />
+              
+              <div>
+                <h3 className="text-sm font-medium mb-2">Items</h3>
+                <div className="border rounded-md">
+                  <div className="overflow-auto max-h-[200px]">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-muted/50 text-xs">
+                          <th className="text-left p-2">Product</th>
+                          <th className="text-left p-2">Variant</th>
+                          <th className="text-left p-2">Price</th>
+                          <th className="text-right p-2">Qty</th>
+                          <th className="text-right p-2">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {viewingOrder.items.map((item, index) => (
+                          <tr key={index} className="border-t text-sm">
+                            <td className="p-2">
+                              <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-md bg-secondary overflow-hidden">
+                                  <img
+                                    src={item.image}
+                                    alt={item.name}
+                                    className="h-full w-full object-cover"
+                                  />
+                                </div>
+                                <span>{item.name}</span>
+                              </div>
+                            </td>
+                            <td className="p-2">
+                              {item.variant.size}, {item.variant.color}
+                            </td>
+                            <td className="p-2">₹{(item.price / 100).toFixed(2)}</td>
+                            <td className="p-2 text-right">{item.quantity}</td>
+                            <td className="p-2 text-right">₹{(item.price * item.quantity / 100).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-1">Payment Method</h3>
+                  <p className="text-sm">{viewingOrder.paymentMethod}</p>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>Subtotal:</span>
+                    <span>₹{((viewingOrder.total - viewingOrder.shipping) / 100).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Shipping:</span>
+                    <span>₹{(viewingOrder.shipping / 100).toFixed(2)}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-medium">
+                    <span>Total:</span>
+                    <span>₹{(viewingOrder.total / 100).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Order
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Order</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete order #{viewingOrder.id}? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={() => {
+                        handleDeleteOrder(viewingOrder.id);
+                        setViewingOrder(null);
+                      }}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button variant="outline" onClick={() => setViewingOrder(null)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
