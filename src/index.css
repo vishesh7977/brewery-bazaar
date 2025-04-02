@@ -5,7 +5,7 @@
 
 @layer base {
   :root {
-    /* Light mode variables */
+    /* Light mode variables with improved colors */
     --background: 0 0% 100%;
     --foreground: 0 0% 12%;
 
@@ -42,29 +42,29 @@
     --background: 220 10% 7%;
     --foreground: 210 8% 98%;
 
-    --card: 222 10% 10%;
+    --card: 222 12% 10%;
     --card-foreground: 210 8% 98%;
 
-    --popover: 222 10% 7%;
+    --popover: 222 12% 7%;
     --popover-foreground: 210 8% 98%;
 
     --primary: 210 8% 98%;
     --primary-foreground: 220 10% 7%;
 
-    --secondary: 217 10% 15%;
+    --secondary: 217 15% 15%;
     --secondary-foreground: 210 8% 98%;
 
-    --muted: 217 10% 15%;
+    --muted: 217 15% 15%;
     --muted-foreground: 217 10% 65%;
 
-    --accent: 217 10% 15%;
+    --accent: 217 15% 15%;
     --accent-foreground: 210 8% 98%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 8% 98%;
 
-    --border: 217 10% 20%;
-    --input: 217 10% 20%;
+    --border: 217 15% 20%;
+    --input: 217 15% 20%;
     --ring: 212 8% 80%;
   }
 }
@@ -124,7 +124,12 @@
     @apply bg-gradient-to-br from-card to-card/50 hover:from-card/80 hover:to-card/30 transition-colors;
   }
 
-  /* Gen Z enhancements */
+  /* Text treatments */
+  .text-gradient {
+    @apply bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent;
+  }
+
+  /* Enhanced Gen Z elements */
   .genz-card {
     @apply bg-gradient-to-br from-card to-card/60 backdrop-blur-sm border border-white/10 dark:border-white/5 hover:shadow-lg transition-all duration-300;
   }
@@ -180,9 +185,19 @@
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
-/* Ensure consistent product cards on mobile and desktop */
+/* Mobile enhancements */
 @media (max-width: 768px) {
   .product-card {
     @apply w-full max-w-xs mx-auto;
+  }
+  
+  /* Enhanced scrollbar for mobile testimonials */
+  .snap-x {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .snap-x::-webkit-scrollbar {
+    display: none;
   }
 }

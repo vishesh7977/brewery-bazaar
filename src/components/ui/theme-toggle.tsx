@@ -39,9 +39,10 @@ export function ThemeToggle() {
         size="icon"
         onClick={toggleTheme}
         aria-label="Toggle theme"
-        className="rounded-full w-10 h-10 border-primary/30 hover:bg-primary/10 relative overflow-hidden bg-gradient-to-br from-background to-background/80"
+        className="rounded-full w-10 h-10 border-primary/30 hover:bg-primary/10 relative overflow-hidden"
       >
-        <div className="absolute inset-0 bg-gradient-shift opacity-10 pointer-events-none"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-background/80 to-secondary/30 opacity-50"></div>
+        <div className="absolute inset-0 bg-shimmer bg-200% animate-shimmer opacity-0 group-hover:opacity-20"></div>
         
         <motion.div
           initial={false}
@@ -74,6 +75,17 @@ export function ThemeToggle() {
           }}
           className="absolute inset-0 flex items-center justify-center"
         >
+          <motion.div
+            animate={{ rotate: [0, 360] }}
+            transition={{ 
+              duration: 50,
+              ease: "linear",
+              repeat: Infinity
+            }}
+            className="absolute inset-0 opacity-10 pointer-events-none"
+          >
+            <div className="absolute inset-0 rounded-full border border-sky-300/20 border-dashed"></div>
+          </motion.div>
           <Moon className="h-5 w-5 text-sky-300" />
         </motion.div>
         <span className="sr-only">Toggle theme</span>
