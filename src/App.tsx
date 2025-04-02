@@ -23,7 +23,14 @@ import Footer from "./components/layout/Footer";
 import AboutUs from "./pages/AboutUs";
 import Contact from "./pages/Contact";
 import Profile from "./pages/Profile";
-import Support from "./pages/Support";
+
+// Support pages
+import SupportHome from "./pages/support/SupportHome";
+import FAQs from "./pages/support/FAQs";
+import ShippingInfo from "./pages/support/ShippingInfo";
+import ReturnsExchanges from "./pages/support/ReturnsExchanges";
+import SizeGuide from "./pages/support/SizeGuide";
+import TrackOrder from "./pages/support/TrackOrder";
 
 const queryClient = new QueryClient();
 
@@ -99,12 +106,20 @@ const AppContent = () => {
             } />
             <Route path="/about-us" element={<AboutUs />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/support" element={<Support />} />
             <Route path="/profile" element={
               <ProtectedRoute>
                 <Profile />
               </ProtectedRoute>
             } />
+
+            {/* Support Routes */}
+            <Route path="/support" element={<SupportHome />} />
+            <Route path="/support/faqs" element={<FAQs />} />
+            <Route path="/support/shipping" element={<ShippingInfo />} />
+            <Route path="/support/returns" element={<ReturnsExchanges />} />
+            <Route path="/support/size-guide" element={<SizeGuide />} />
+            <Route path="/support/track-order" element={<TrackOrder />} />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
