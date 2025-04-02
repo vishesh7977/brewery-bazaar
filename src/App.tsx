@@ -23,6 +23,7 @@ import Footer from "./components/layout/Footer";
 import AboutUs from "./pages/AboutUs";
 import Contact from "./pages/Contact";
 import Profile from "./pages/Profile";
+import Support from "./pages/Support";
 
 const queryClient = new QueryClient();
 
@@ -98,6 +99,7 @@ const AppContent = () => {
             } />
             <Route path="/about-us" element={<AboutUs />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/support" element={<Support />} />
             <Route path="/profile" element={
               <ProtectedRoute>
                 <Profile />

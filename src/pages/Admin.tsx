@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { products as initialProducts, categories } from "@/lib/data";
-import { Edit, Trash2, Plus, Search, Filter, Package, Users, ShoppingCart, Save, Eye, X } from "lucide-react";
+import { Edit, Trash2, Plus, Search, Filter, Package, Users, ShoppingCart, Save, Eye, X, BarChart } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,6 +18,9 @@ import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { FileInput } from "@/components/ui/file-input";
+import DashboardCharts from "@/components/admin/DashboardCharts";
+import CheckoutIntegration from "@/components/admin/CheckoutIntegration";
 
 // Helper component for order status badge
 const StatusBadge = ({ status }: { status: OrderStatus }) => {
@@ -47,7 +49,7 @@ const StatusBadge = ({ status }: { status: OrderStatus }) => {
 export default function Admin() {
   
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("products");
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   
@@ -62,6 +64,10 @@ export default function Admin() {
   
   // Get customers from localStorage
   const [customers, setCustomers] = useLocalStorage<any[]>("customers", []);
+  
+  // For file uploads
+  const [productImages, setProductImages] = useState<(File | null)[]>([null]);
+  const [productImageUrls, setProductImageUrls] = useState<string[]>([]);
   
   // Form state for product editing/creation
   const [formProduct, setFormProduct] = useState<Partial<Product>>({
@@ -84,8 +90,6 @@ export default function Admin() {
     inStock: true
   });
   
-  
-  
   // Show login message with demo credentials
   useEffect(() => {
     toast({
@@ -93,6 +97,45 @@ export default function Admin() {
       description: "Use admin@test.com / admin to log in",
     });
   }, []);
+  
+  // Handle uploaded images when added or removed
+  useEffect(() => {
+    // Convert any uploaded files to data URLs
+    const convertFilesToUrls = async () => {
+      const urls: string[] = [];
+      
+      for (const fileOrNull of productImages) {
+        if (fileOrNull) {
+          const url = await readFileAsDataURL(fileOrNull);
+          urls.push(url);
+        }
+      }
+      
+      // Maintain existing image URLs that came from formProduct
+      const existingUrls = formProduct.images?.filter(url => 
+        !url.startsWith('blob:') && !url.startsWith('data:')
+      ) || [];
+      
+      const allUrls = [...existingUrls, ...urls];
+      
+      setProductImageUrls(allUrls);
+      setFormProduct(prev => ({
+        ...prev,
+        images: allUrls
+      }));
+    };
+    
+    convertFilesToUrls();
+  }, [productImages]);
+  
+  // Read file as data URL
+  const readFileAsDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.readAsDataURL(file);
+    });
+  };
   
   // Filter products based on search and category
   const filteredProducts = products.filter(product => {
@@ -109,7 +152,7 @@ export default function Admin() {
       description: "",
       price: 2000,
       category: "t-shirts",
-      images: ["https://img.freepik.com/free-photo/black-t-shirt-with-word-ultra-it_1340-37775.jpg"],
+      images: [],
       variants: [
         {
           id: "var1",
@@ -123,12 +166,16 @@ export default function Admin() {
       reviews: 0,
       inStock: true
     });
+    setProductImages([null]);
+    setProductImageUrls([]);
     setShowProductForm(true);
   };
   
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
     setFormProduct(product);
+    setProductImages([null]);
+    setProductImageUrls(product.images || []);
     setShowProductForm(true);
   };
   
@@ -145,6 +192,16 @@ export default function Admin() {
       toast({
         title: "Missing information",
         description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Ensure there's at least one image
+    if (!formProduct.images?.length) {
+      toast({
+        title: "Missing image",
+        description: "Please add at least one product image.",
         variant: "destructive",
       });
       return;
@@ -228,6 +285,44 @@ export default function Admin() {
       title: "Order updated",
       description: `Order #${orderId} status changed to ${status}`,
     });
+  };
+  
+  const handleFileChange = (index: number, file: File | null) => {
+    const newProductImages = [...productImages];
+    newProductImages[index] = file;
+    
+    // If this was the last slot and a file was added, create a new empty slot
+    if (index === productImages.length - 1 && file) {
+      newProductImages.push(null);
+    }
+    
+    setProductImages(newProductImages);
+  };
+  
+  const handleRemoveImage = (index: number) => {
+    // Remove from URLs array
+    const newUrls = [...productImageUrls];
+    newUrls.splice(index, 1);
+    setProductImageUrls(newUrls);
+    
+    // Update form product
+    setFormProduct(prev => ({
+      ...prev,
+      images: newUrls
+    }));
+    
+    // If this was a file upload slot, remove it from productImages as well
+    if (index < productImages.length) {
+      const newProductImages = [...productImages];
+      newProductImages.splice(index, 1);
+      
+      // Make sure we always have at least one upload slot
+      if (newProductImages.length === 0) {
+        newProductImages.push(null);
+      }
+      
+      setProductImages(newProductImages);
+    }
   };
   
   // Generate color options
@@ -322,6 +417,10 @@ export default function Admin() {
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-8 bg-background/50 backdrop-blur-sm">
+          <TabsTrigger value="dashboard" className="flex items-center gap-2">
+            <BarChart className="h-4 w-4" />
+            Dashboard
+          </TabsTrigger>
           <TabsTrigger value="products" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
             Products
@@ -335,7 +434,57 @@ export default function Admin() {
             Customers
           </TabsTrigger>
         </TabsList>
+
+        {/* Dashboard Tab */}
+        <TabsContent value="dashboard">
+          <div className="space-y-8">
+            <DashboardCharts />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <CheckoutIntegration />
+              
+              {/* Recent Orders */}
+              <Card className="bg-card/50 backdrop-blur-sm border border-border/50 hover:shadow-lg transition-shadow duration-300">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-lg">Recent Orders</CardTitle>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8"
+                    onClick={() => setActiveTab("orders")}
+                  >
+                    View all
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {orders.slice(0, 5).map((order) => (
+                      <div key={order.id} className="flex justify-between items-center p-3 bg-muted/20 rounded-md">
+                        <div>
+                          <div className="font-medium">#{order.id}</div>
+                          <div className="text-sm text-muted-foreground">{order.customer.name}</div>
+                        </div>
+                        <div className="text-right">
+                          <div>₹{(order.total / 100).toFixed(2)}</div>
+                          <StatusBadge status={order.status} />
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {orders.length === 0 && (
+                      <div className="text-center py-6 text-muted-foreground">
+                        <ShoppingCart className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                        <p>No orders yet</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
         
+        {/* Products Tab */}
         <TabsContent value="products">
           <Card className="bg-card/50 backdrop-blur-sm border border-border/50 hover:shadow-lg transition-shadow duration-300">
             <CardHeader>
@@ -500,6 +649,7 @@ export default function Admin() {
           </Card>
         </TabsContent>
         
+        {/* Orders Tab */}
         <TabsContent value="orders">
           <Card className="bg-card/50 backdrop-blur-sm border border-border/50 hover:shadow-lg transition-shadow duration-300">
             <CardHeader>
@@ -590,6 +740,7 @@ export default function Admin() {
           </Card>
         </TabsContent>
         
+        {/* Customers Tab */}
         <TabsContent value="customers">
           <Card className="bg-card/50 backdrop-blur-sm border border-border/50 hover:shadow-lg transition-shadow duration-300">
             <CardHeader>
@@ -690,420 +841,3 @@ export default function Admin() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select 
-                  value={formProduct.category || "t-shirts"} 
-                  onValueChange={(value) => setFormProduct({ ...formProduct, category: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.slug} value={category.slug}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formProduct.description || ""}
-                onChange={(e) => setFormProduct({ ...formProduct, description: e.target.value })}
-                placeholder="Product description"
-                rows={4}
-                className="focus:ring-primary/30"
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="price">Price (in paise)</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  min="0"
-                  step="100"
-                  value={formProduct.price || 0}
-                  onChange={(e) => setFormProduct({ ...formProduct, price: parseInt(e.target.value) })}
-                  placeholder="Price"
-                  className="focus:ring-primary/30"
-                />
-                <p className="text-sm text-muted-foreground">
-                  ₹{((formProduct.price || 0) / 100).toFixed(2)}
-                </p>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="original-price">Original Price (Optional)</Label>
-                <Input
-                  id="original-price"
-                  type="number"
-                  min="0"
-                  step="100"
-                  value={formProduct.originalPrice || ""}
-                  onChange={(e) => {
-                    const value = e.target.value ? parseInt(e.target.value) : undefined;
-                    setFormProduct({ ...formProduct, originalPrice: value });
-                  }}
-                  placeholder="Original price"
-                  className="focus:ring-primary/30"
-                />
-                {formProduct.originalPrice && (
-                  <p className="text-sm text-muted-foreground">
-                    ₹{(formProduct.originalPrice / 100).toFixed(2)}
-                  </p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <div className="flex items-center space-x-2 pt-2">
-                  <Switch 
-                    id="status" 
-                    checked={formProduct.inStock} 
-                    onCheckedChange={(checked) => setFormProduct({ ...formProduct, inStock: checked })}
-                  />
-                  <Label htmlFor="status">{formProduct.inStock ? "In Stock" : "Out of Stock"}</Label>
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="images">Images (URLs)</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {(formProduct.images || []).map((image, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      value={image}
-                      onChange={(e) => {
-                        const updatedImages = [...(formProduct.images || [])];
-                        updatedImages[index] = e.target.value;
-                        setFormProduct({ ...formProduct, images: updatedImages });
-                      }}
-                      placeholder="Image URL"
-                      className="focus:ring-primary/30"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      type="button"
-                      onClick={() => {
-                        const updatedImages = [...(formProduct.images || [])].filter((_, i) => i !== index);
-                        setFormProduct({ ...formProduct, images: updatedImages });
-                      }}
-                      disabled={(formProduct.images || []).length <= 1}
-                      className="hover:bg-destructive/10"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => {
-                    setFormProduct({
-                      ...formProduct,
-                      images: [...(formProduct.images || []), ""]
-                    });
-                  }}
-                  className="hover:bg-primary/10"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Image
-                </Button>
-              </div>
-            </div>
-            
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <Label>Product Variants</Label>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleAddVariant}
-                  className="hover:bg-primary/10"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Variant
-                </Button>
-              </div>
-              
-              {formProduct.variants && formProduct.variants.length > 0 ? (
-                <div className="space-y-3">
-                  {formProduct.variants.map((variant, index) => (
-                    <div key={variant.id} className="border p-4 rounded-md">
-                      <div className="flex justify-between items-center mb-3">
-                        <h4 className="font-medium">Variant {index + 1}</h4>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveVariant(variant.id)}
-                          disabled={formProduct.variants?.length === 1}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor={`size-${variant.id}`}>Size</Label>
-                          <Select 
-                            value={variant.size} 
-                            onValueChange={(value) => handleVariantChange(variant.id, "size", value)}
-                          >
-                            <SelectTrigger id={`size-${variant.id}`}>
-                              <SelectValue placeholder="Select a size" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {["XS", "S", "M", "L", "XL", "XXL"].map((size) => (
-                                <SelectItem key={size} value={size}>
-                                  {size}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor={`color-${variant.id}`}>Color</Label>
-                          <Select 
-                            value={variant.color} 
-                            onValueChange={(value) => {
-                              const selectedColor = colorOptions.find(c => c.name === value);
-                              handleVariantChange(variant.id, "color", value);
-                              handleVariantChange(variant.id, "colorCode", selectedColor?.code || "#000000");
-                            }}
-                          >
-                            <SelectTrigger id={`color-${variant.id}`}>
-                              <SelectValue placeholder="Select a color" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {colorOptions.map((color) => (
-                                <SelectItem key={color.name} value={color.name}>
-                                  <div className="flex items-center gap-2">
-                                    <div 
-                                      className="w-4 h-4 rounded-full border border-border"
-                                      style={{ backgroundColor: color.code }}
-                                    ></div>
-                                    {color.name}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor={`stock-${variant.id}`}>Stock</Label>
-                          <Input
-                            id={`stock-${variant.id}`}
-                            type="number"
-                            min="0"
-                            value={variant.stock}
-                            onChange={(e) => handleVariantChange(variant.id, "stock", parseInt(e.target.value))}
-                            placeholder="Stock quantity"
-                            className="focus:ring-primary/30"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center p-4 border rounded-md">
-                  <p className="text-muted-foreground">No variants added yet.</p>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowProductForm(false)}
-              className="hover:bg-muted/50"
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="button" 
-              onClick={handleSaveProduct}
-              className="bg-primary hover:bg-primary/90 transition-colors"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Order viewing dialog */}
-      <Dialog open={!!viewingOrder} onOpenChange={(open) => !open && setViewingOrder(null)}>
-        {viewingOrder && (
-          <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto bg-card/95 backdrop-blur-lg">
-            <DialogHeader>
-              <DialogTitle className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                Order #{viewingOrder.id}
-              </DialogTitle>
-              <DialogDescription>
-                Placed on {new Date(viewingOrder.date).toLocaleDateString()} • {viewingOrder.customer.name}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="grid gap-6 py-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="col-span-2">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Order Items</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {viewingOrder.items.map((item, i) => (
-                        <div key={i} className="flex items-start gap-4 pb-4 border-b last:border-0">
-                          <div className="h-16 w-16 rounded-md bg-secondary overflow-hidden flex-shrink-0">
-                            <img
-                              src={item.product.images[0]}
-                              alt={item.product.name}
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-medium">{item.product.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {item.variant.size} • {item.variant.color}
-                            </div>
-                            <div className="text-sm text-muted-foreground mt-1">
-                              Quantity: {item.quantity}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-medium">₹{(item.price / 100).toFixed(2)}</div>
-                            <div className="text-sm text-muted-foreground mt-1">
-                              ₹{((item.price * item.quantity) / 100).toFixed(2)}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    <div className="mt-6 space-y-2 border-t pt-4">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Subtotal</span>
-                        <span>₹{(viewingOrder.subtotal / 100).toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Shipping</span>
-                        <span>₹{(viewingOrder.shipping / 100).toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between font-medium pt-2 border-t">
-                        <span>Total</span>
-                        <span>₹{(viewingOrder.total / 100).toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base">Customer</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <div className="font-medium">{viewingOrder.customer.name}</div>
-                        <div className="text-sm text-muted-foreground">{viewingOrder.customer.email}</div>
-                        <div className="text-sm text-muted-foreground">{viewingOrder.customer.phone}</div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base">Shipping Address</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-1 text-sm">
-                        <div>{viewingOrder.shippingAddress.street}</div>
-                        {viewingOrder.shippingAddress.street && (
-                          <div>{viewingOrder.shippingAddress.street}</div>
-                        )}
-                        <div>
-                          {viewingOrder.shippingAddress.city}, {viewingOrder.shippingAddress.state} {viewingOrder.shippingAddress.zipCode}
-                        </div>
-                        <div>{viewingOrder.shippingAddress.country}</div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base">Status</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <StatusBadge status={viewingOrder.status} />
-                        <Select 
-                          value={viewingOrder.status} 
-                          onValueChange={(value) => handleUpdateOrderStatus(viewingOrder.id, value as OrderStatus)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Update status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Processing">Processing</SelectItem>
-                            <SelectItem value="Shipped">Shipped</SelectItem>
-                            <SelectItem value="Delivered">Delivered</SelectItem>
-                            <SelectItem value="Cancelled">Cancelled</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base">Payment</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Method</span>
-                          <span>{viewingOrder.paymentMethod}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Status</span>
-                          <span className="text-green-600 dark:text-green-500">Paid</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  {viewingOrder.notes && (
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-base">Notes</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm">{viewingOrder.notes}</p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              </div>
-            </div>
-          </DialogContent>
-        )}
-      </Dialog>
-    </div>
-  );
-}

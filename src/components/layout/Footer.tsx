@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { Mail, Phone, MapPin, Instagram, Twitter, Facebook, ChevronRight, CreditCard, Truck, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -213,31 +212,31 @@ export default function Footer() {
             <h4 className="text-lg font-semibold">Support</h4>
             <ul className="space-y-2">
               <li>
-                <Link to="/faq" className="text-sm text-muted-foreground hover:text-foreground flex items-center group">
+                <Link to="/support?tab=faqs" className="text-sm text-muted-foreground hover:text-foreground flex items-center group">
                   <ChevronRight className="h-3 w-3 mr-1 invisible group-hover:visible text-primary transition-all" />
                   FAQs
                 </Link>
               </li>
               <li>
-                <Link to="/shipping" className="text-sm text-muted-foreground hover:text-foreground flex items-center group">
+                <Link to="/support?tab=shipping" className="text-sm text-muted-foreground hover:text-foreground flex items-center group">
                   <ChevronRight className="h-3 w-3 mr-1 invisible group-hover:visible text-primary transition-all" />
                   Shipping Info
                 </Link>
               </li>
               <li>
-                <Link to="/returns" className="text-sm text-muted-foreground hover:text-foreground flex items-center group">
+                <Link to="/support?tab=returns" className="text-sm text-muted-foreground hover:text-foreground flex items-center group">
                   <ChevronRight className="h-3 w-3 mr-1 invisible group-hover:visible text-primary transition-all" />
                   Returns & Exchanges
                 </Link>
               </li>
               <li>
-                <Link to="/size-guide" className="text-sm text-muted-foreground hover:text-foreground flex items-center group">
+                <Link to="/support?tab=size-guide" className="text-sm text-muted-foreground hover:text-foreground flex items-center group">
                   <ChevronRight className="h-3 w-3 mr-1 invisible group-hover:visible text-primary transition-all" />
                   Size Guide
                 </Link>
               </li>
               <li>
-                <Link to="/track-order" className="text-sm text-muted-foreground hover:text-foreground flex items-center group">
+                <Link to="/support?tab=track-order" className="text-sm text-muted-foreground hover:text-foreground flex items-center group">
                   <ChevronRight className="h-3 w-3 mr-1 invisible group-hover:visible text-primary transition-all" />
                   Track Order
                 </Link>
