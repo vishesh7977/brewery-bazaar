@@ -56,9 +56,9 @@ export default function Navbar() {
         <Link to="/" className="flex items-center">
           <div className="h-10 w-auto">
             <img 
-              src="/lovable-uploads/5aefe79a-8b57-4e1d-bdf0-4ab6c38fde5b.png" 
+              src="/lovable-uploads/79b98de2-50cc-47c0-b418-3357179b4a84.png" 
               alt="Brewery Logo" 
-              className="h-full object-contain"
+              className="h-full object-contain dark:invert" 
             />
           </div>
         </Link>
