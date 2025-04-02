@@ -67,6 +67,9 @@ export default {
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
 			},
+      backgroundSize: {
+        '200%': '200% 200%'
+      },
 			keyframes: {
 				'accordion-down': {
 					from: {
