@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +36,7 @@ export const ProductFormDialog = ({
   setFormProduct,
   editingProduct,
   productImages,
+  setProductImages,
   productImageUrls,
   categories,
   handleSaveProduct,
@@ -163,7 +163,6 @@ export const ProductFormDialog = ({
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {/* Image URL Previews */}
               {productImageUrls.map((url, idx) => (
                 <div key={`url-${idx}`} className="relative rounded-md border p-1 overflow-hidden bg-card/50">
                   <img src={url} alt={`Product ${idx + 1}`} className="h-40 w-full object-contain" />
@@ -179,7 +178,6 @@ export const ProductFormDialog = ({
                 </div>
               ))}
               
-              {/* File Upload Inputs */}
               {productImages.map((file, idx) => (
                 <div key={`upload-${idx}`} className={productImageUrls.length > 0 && idx === 0 ? "hidden" : ""}>
                   <FileInput
