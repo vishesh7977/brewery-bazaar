@@ -1,11 +1,12 @@
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search, ShoppingCart } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "./StatusBadge";
-import { Order } from "@/types";
+import { Order, OrderStatus } from "@/types";
 
 interface OrdersTabContentProps {
   orders: Order[];
@@ -13,6 +14,25 @@ interface OrdersTabContentProps {
 }
 
 export const OrdersTabContent = ({ orders, setViewingOrder }: OrdersTabContentProps) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  
+  // Filter orders based on search and status
+  const filteredOrders = orders.filter(order => {
+    // Search term filter (check ID, customer name, or customer email)
+    const searchMatch = 
+      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer.email.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Status filter
+    const statusMatch = 
+      statusFilter === "all" || 
+      order.status.toLowerCase() === statusFilter.toLowerCase();
+    
+    return searchMatch && statusMatch;
+  });
+
   return (
     <Card className="bg-card/50 backdrop-blur-sm border border-border/50 hover:shadow-lg transition-shadow duration-300">
       <CardHeader>
@@ -30,9 +50,15 @@ export const OrdersTabContent = ({ orders, setViewingOrder }: OrdersTabContentPr
                 type="search"
                 placeholder="Search orders..."
                 className="pl-8 w-full md:w-[200px] lg:w-[300px]"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Select defaultValue="all">
+            <Select 
+              defaultValue="all" 
+              value={statusFilter}
+              onValueChange={setStatusFilter}
+            >
               <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
@@ -62,8 +88,8 @@ export const OrdersTabContent = ({ orders, setViewingOrder }: OrdersTabContentPr
                 </tr>
               </thead>
               <tbody>
-                {orders.length > 0 ? (
-                  orders.map((order) => (
+                {filteredOrders.length > 0 ? (
+                  filteredOrders.map((order) => (
                     <tr key={order.id} className="border-t hover:bg-muted/30 transition-colors">
                       <td className="p-3">
                         <div className="font-medium">#{order.id}</div>

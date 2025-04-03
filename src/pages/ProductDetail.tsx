@@ -1,13 +1,14 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { products } from "@/lib/data";
 import { Product, ProductVariant } from "@/types";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { HeartIcon, ShoppingCart, Star, ArrowLeft, Share2, Truck, Clock, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import { useCart } from "@/contexts/CartContext";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { products as initialProducts } from "@/lib/data";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -15,8 +16,11 @@ export default function ProductDetail() {
   const { toast } = useToast();
   const { addItem } = useCart();
   
+  // Get products from localStorage or use initial data
+  const [storedProducts] = useLocalStorage<Product[]>("products", initialProducts);
+  
   // Find the product by ID
-  const product = products.find((p) => p.id === id);
+  const product = storedProducts.find((p) => p.id === id);
   
   // If product not found, show a message
   if (!product) {
@@ -147,7 +151,7 @@ export default function ProductDetail() {
 
   // Format price for display
   const formatPrice = (price: number) => {
-    return `₹${(price / 10000).toFixed(2)}`;
+    return `₹${(price / 100).toFixed(2)}`;
   };
   
   return (
@@ -253,7 +257,7 @@ export default function ProductDetail() {
           <div className="space-y-4">
             <div className="flex justify-between">
               <span className="font-medium">Size</span>
-              <Link to="/size-guide" className="text-sm underline text-muted-foreground">
+              <Link to="/support/size-guide" className="text-sm underline text-muted-foreground">
                 Size Guide
               </Link>
             </div>
