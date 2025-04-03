@@ -17,6 +17,9 @@ import { ProductsTabContent } from "@/components/admin/ProductsTabContent";
 import { OrdersTabContent } from "@/components/admin/OrdersTabContent";
 import { CustomersTabContent } from "@/components/admin/CustomersTabContent";
 import { ProductFormDialog } from "@/components/admin/ProductFormDialog";
+import { OrderStatusHandler } from "@/components/admin/OrderStatusHandler";
+import { ProductImageManager } from "@/components/admin/ProductImageManager";
+import { ProductVariantManager } from "@/components/admin/ProductVariantManager";
 
 export default function Admin() {
   const { toast } = useToast();
