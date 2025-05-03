@@ -1,10 +1,10 @@
-
 import { Link } from "react-router-dom";
 import { Mail, Phone, MapPin, Instagram, Twitter, Facebook, ChevronRight, CreditCard, Truck, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { CustomLogo } from "./CustomLogo";
 
 export default function Footer() {
   const { toast } = useToast();
@@ -97,11 +97,7 @@ export default function Footer() {
           {/* Logo and Brand Description */}
           <motion.div variants={item} className="space-y-4">
             <div className="h-8 w-auto">
-              <img 
-                src="/lovable-uploads/5aefe79a-8b57-4e1d-bdf0-4ab6c38fde5b.png" 
-                alt="Brewery Logo" 
-                className="h-full object-contain"
-              />
+              <CustomLogo />
             </div>
             <p className="text-sm text-muted-foreground">
               Premium streetwear brand offering stylish and affordable clothing inspired by Mumbai's vibrant culture.
