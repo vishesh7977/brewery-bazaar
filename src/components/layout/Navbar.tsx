@@ -1,3 +1,4 @@
+
 // Import the CustomLogo component
 import { CustomLogo } from "./CustomLogo";
 import { useState } from "react";
@@ -42,6 +43,9 @@ const Navbar = () => {
 
   // Check if the current route is the admin panel
   const isAdminPanel = location.pathname.startsWith("/admin");
+
+  // Get cart item count from cart items array
+  const cartItemCount = cart.items ? cart.items.length : 0;
 
   return (
     <div className="bg-background border-b border-border sticky top-0 z-50">
@@ -98,9 +102,9 @@ const Navbar = () => {
           <Link to="/cart">
             <Button variant="ghost" size="sm">
               <ShoppingCart className="h-5 w-5" />
-              {cart.length > 0 && (
+              {cartItemCount > 0 && (
                 <Badge variant="secondary" className="ml-2">
-                  {cart.length}
+                  {cartItemCount}
                 </Badge>
               )}
               <span className="sr-only">Cart</span>
